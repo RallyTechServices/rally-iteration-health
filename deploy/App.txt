@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Aug 07 2015 16:04:57 GMT-0600 (MDT) -->
+    <!--  Build Date: Fri Aug 07 2015 16:10:42 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Aug 07 2015 16:04:57 GMT-0600 (MDT)";
-        var CHECKSUM = 73409911608;
+        var APP_BUILD_DATE = "Fri Aug 07 2015 16:10:42 GMT-0600 (MDT)";
+        var CHECKSUM = 73543773636;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -1288,6 +1288,7 @@ Ext.define("rally-iteration-health", {
         var today_iso = Rally.util.DateTime.toIsoString(new Date()),
             num_iterations = nbf ? nbf.getValue() : this.defaultNumIterations;
 
+        this.down('#display_box').removeAll();
         this.logger.log('_fetchIterations', num_iterations);
         Rally.technicalservices.ModelBuilder.build('Iteration','IterationHealth').then({
             scope: this,

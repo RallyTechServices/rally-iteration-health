@@ -122,6 +122,7 @@ Ext.define("rally-iteration-health", {
         var today_iso = Rally.util.DateTime.toIsoString(new Date()),
             num_iterations = nbf ? nbf.getValue() : this.defaultNumIterations;
 
+        this.down('#display_box').removeAll();
         this.logger.log('_fetchIterations', num_iterations);
         Rally.technicalservices.ModelBuilder.build('Iteration','IterationHealth').then({
             scope: this,

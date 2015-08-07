@@ -7,6 +7,8 @@ This app can only be used at the leaf project level, meaning that data will not 
 This app uses cumulative flow data for the selected project and iterations and can be used with any SaaS or On-Premise subscription that supports the 2.0 SDK.
 
 Task Churn can be hidden via the App Settings.
+
+![ScreenShot](/images/rally-iteration-health.png)
   
 ##Metric Definitions:  
 
