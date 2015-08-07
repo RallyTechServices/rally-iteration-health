@@ -24,7 +24,11 @@ Ext.define("rally-iteration-health", {
         this.healthConfig = Ext.create('Rally.technicalservices.healthConfiguration',{
             appId: this.getAppId(),
             hideTaskMovementColumn: this.getSetting('hideTaskMovementColumn'),
-            showDateForHalfAcceptanceRatio: this.getSetting('showDateForHalfAcceptanceRatio')
+            showDateForHalfAcceptanceRatio: this.getSetting('showDateForHalfAcceptanceRatio'),
+            listeners: {
+                scope: this,
+                rangechanged: this._refreshView
+            }
         });
 
         var project_oid = this.getContext().getProject().ObjectID;
@@ -37,6 +41,12 @@ Ext.define("rally-iteration-health", {
                 Rally.ui.notify.Notifier.showError({message: msg});
             }
         });
+    },
+    _refreshView: function(){
+        this.logger.log('_refreshView');
+        if (this.down('rallygrid')){
+            this.down('rallygrid').getView().refresh();
+        }
     },
     _initApp: function(child_project_count){
         this.down('#criteria_box').removeAll();
@@ -157,7 +167,7 @@ Ext.define("rally-iteration-health", {
             if (col.display){
                 var cfg = {
                     dataIndex: key,
-                    text: col.displayName,
+                    text: col.displayName || key,
                     scope: config
                 };
                 if (col.range){
@@ -173,25 +183,68 @@ Ext.define("rally-iteration-health", {
         return column_cfgs;
     },
     _showColumnDescription: function(ct, column, evt, target_element, eOpts){
-        if (this.dialog){this.dialog.destroy();}
-        this.dialog = Ext.create('Rally.ui.popover.Popover',{
+        if (this.dialog){
+            this.dialog.destroy();
+        }
+
+        var tool_tip = this.healthConfig.getTooltip(column.dataIndex);
+
+        var items = [{
+                cls: 'ts_popover_description',
+                xtype:'container',
+                html: tool_tip
+            }],
+            adjustor = this.getAdjustor(column);
+        if (adjustor){
+            items.push(adjustor);
+        }
+
+        this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
             defaults: { padding: 5, margin: 5 },
             closable: true,
             draggable: true,
             title: column.text,
-            items: [{
-                cls: 'ts_popover_description',
-                xtype:'container',
-                html: 'html'
-            },
-                //    TSDescriptions.getAdjustor(column,cell_renderer)
-            ]
+            items: items
         });
         this.dialog.show();
     },
+    getAdjustor: function(column){
+        var config = this.healthConfig;
+
+        if ( config.displaySettings[column.dataIndex] && config.displaySettings[column.dataIndex].range) {
+            var ranges = config.displaySettings[column.dataIndex].range,
+                colors = config.getRangeColors(ranges),
+                field_label = config.getRangeLabel(ranges),
+                values = [ranges[colors[0]] || 50,ranges[colors[1]] || 75];
+
+            return {
+                xtype:'multislider',
+                fieldLabel: field_label,
+                width: 400,
+                values: values,
+                increment: 5,
+                minValue: 0,
+                maxValue: 100,
+                tipText:function(thumb){ return colors[thumb.index] + ": above " + thumb.value; },
+                listeners: {
+                    changecomplete: function(slider,new_value,thumb){
+                        values[thumb.index] = new_value;
+                        ranges[colors[thumb.index]] = new_value;
+                        config.setRanges(column.dataIndex,ranges);
+
+                    }
+                }
+            };
+        }
+
+        return null;
+    },
+
+
     _updateDisplay: function(){
         var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null,
-            use_points = (metric_type == 'points');
+            use_points = (metric_type == 'points'),
+            skip_zero = this.healthConfig.skipZeroForEstimationRatio;
         this.healthConfig.usePoints = use_points;
 
         this.logger.log('_updateDisplay', this.iterationHealthStore, metric_type, use_points);
@@ -199,9 +252,10 @@ Ext.define("rally-iteration-health", {
             return;
         }
 
+
         //Update the store to load supporting records or recalculate with different metric.
         _.each(this.iterationHealthStore.getRecords(), function(r){
-            r.calculate(use_points);
+            r.calculate(use_points, skip_zero);
         });
 
         var column_cfgs = this._getColumnCfgs();
@@ -218,6 +272,7 @@ Ext.define("rally-iteration-health", {
             showPagingToolbar: false,
             enableBulkEdit: false,
             showRowActionsColumn: false,
+            enableEditing: false,
             columnCfgs: column_cfgs
         });
     },
@@ -247,7 +302,10 @@ Ext.define("rally-iteration-health", {
     },
     getSettingsFields: function() {
 
-        var settings = [];
+        var settings = [],
+            half_accepted_ratio_name = this.healthConfig.displaySettings.__halfAcceptedRatio.displayName,
+            task_churn_name = this.healthConfig.displaySettings.__taskChurn.displayName;
+
         if (this.healthConfig.displaySettings.__halfAcceptedRatio.display){
             settings.push({
                     name: 'showDateForHalfAcceptanceRatio',
@@ -255,7 +313,7 @@ Ext.define("rally-iteration-health", {
                     boxLabelAlign: 'after',
                     fieldLabel: '',
                     margin: '0 0 25 200',
-                    boxLabel: 'Show date for Half Acceptance Ratio'
+                    boxLabel: 'Show date for ' + half_accepted_ratio_name
                 });
         }
         settings.push({
@@ -264,7 +322,7 @@ Ext.define("rally-iteration-health", {
             boxLabelAlign: 'after',
             fieldLabel: '',
             margin: '0 0 25 200',
-            boxLabel: 'Hide Task Movement Column'
+            boxLabel: 'Hide ' + task_churn_name
         });
         return settings;
     },

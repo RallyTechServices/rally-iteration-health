@@ -1,4 +1,7 @@
 Ext.define('Rally.technicalservices.healthConfiguration',{
+    mixins: {
+        observable: 'Ext.util.Observable'
+    },
     logger: new Rally.technicalservices.Logger(),
     /**
      * Configurations set by the app
@@ -8,6 +11,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     appId: undefined,
     useSavedRanges: false,
     showDateForHalfAcceptanceRatio: false,
+    skipZeroForEstimationRatio: true,
 
     /**
      * Colors for Cell Renderers
@@ -44,17 +48,17 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __ratioEstimated: {
             display: true,
             displayName: 'Estimation Ratio (Current)',
-            range: { red: 0, yellow: 60, green: 90, direction: 'red,yellow,green' },
+            range: { red: 0, yellow: 60, green: 90, direction: 'red,yellow,green'},
             tooltip: 'Estimation Ratio Tooltip'
         },
         __ratioInProgress: {
             display: true,
-            range: { green: 0, yellow: 25, red: 35, direction: 'green,yellow,red' },
+            range: { green: 0, yellow: 25, red: 35, direction: 'green,yellow,red'},
             displayName: 'Average Daily In-Progress'
         },
         __halfAcceptedRatio: {
             display: true,
-            range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red' },
+            range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red'},
             displayName: '50% Accepted Point'
         },
         __halfAcceptedDate: {
@@ -63,18 +67,18 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         __endCompletionRatio: {
             display: true,
-            range: { red: 0, yellow: 95, green: 100, direction: 'red,yellow,green' },
+            range: { red: 0, yellow: 95, green: 100, direction: 'red,yellow,green'},
             displayName: 'Last Day Completion Ratio'
         },
         __endIncompletionRatio: {
             display: false,
-            range: { green: 0, yellow: 5, red: 10, direction: 'green,yellow,red' },
+            range: { green: 0, yellow: 5, red: 10, direction: 'green,yellow,red'},
             displayName: "Last Day Incompletion Ratio"
         },
         __endAcceptanceRatio: {
             display: true,
             displayName: 'Last Day Acceptance Ratio',
-            range: { red: 0, yellow: 50, green: 91, direction: 'red,yellow,green' }
+            range: { red: 0, yellow: 50, green: 91, direction: 'red,yellow,green'}
         },
         __scopeChurn: {
             display: true,
@@ -91,6 +95,13 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         if (config.hideTaskMovementColumn){
             this.displaySettings.__taskChurn.display = false;
         }
+        this.mixins.observable.constructor.call(this, config);
+
+        this.addEvents(
+            'rangechanged'
+        );
+
+
         //Get settings and preferences here
         //if (this.getAppId() && this.getSetting('useSavedRanges')){
         //    Rally.technicalservices.WsapiToolbox.fetchPreferences(this.getAppId()).then({
@@ -271,6 +282,25 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return "<div style='text-align:center;background-color:" + color + ";'>" + text + "</div>";
         }
 
+    },
+    getRangeColors: function(range){
+        var colors = range.direction.split(',');
+        return colors.slice(-2);
+    },
+    getRangeLabel: function(range){
+        var colors = range.direction.split(',');
+        return Ext.String.format('Range ({0})', colors.join('/'));
+    },
+    setRanges: function(name, range){
+        this.logger.log('setRanges', name, range);
+        //TODO: save ranges
+        this.fireEvent('rangechanged');
+    },
+    getTooltip: function(name){
+        if (this.displaySettings[name]){
+            return this.displaySettings[name].tooltip || this.displaySettings[name].displayName || name;
+        }
+        return name;
     }
 });
 

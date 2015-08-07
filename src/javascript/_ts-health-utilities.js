@@ -1,8 +1,5 @@
 Ext.define('Rally.technicalservices.util.Health',{
     singleton: true,
-    calculateEstimationRatio: function(value, health_record){
-        return 999;
-    },
     /**
      *
      * @param {} an_array  an array of numbers

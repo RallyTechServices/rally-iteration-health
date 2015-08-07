@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Aug 07 2015 06:25:48 GMT-0600 (MDT) -->
+    <!--  Build Date: Fri Aug 07 2015 08:06:47 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Aug 07 2015 06:25:48 GMT-0600 (MDT)";
-        var CHECKSUM = 43237437444;
+        var APP_BUILD_DATE = "Fri Aug 07 2015 08:06:47 GMT-0600 (MDT)";
+        var CHECKSUM = 49874421987;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -177,13 +177,19 @@ Ext.define('Rally.technicalservices.Logger',{
 });
 
 Ext.define('Rally.technicalservices.healthConfiguration',{
-
+    mixins: {
+        observable: 'Ext.util.Observable'
+    },
+    logger: new Rally.technicalservices.Logger(),
     /**
      * Configurations set by the app
      */
-    metricType: undefined,
+    usePoints: true,
     hideTaskMovementColumn: false,
     appId: undefined,
+    useSavedRanges: false,
+    showDateForHalfAcceptanceRatio: false,
+    skipZeroForEstimationRatio: true,
 
     /**
      * Colors for Cell Renderers
@@ -220,19 +226,18 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __ratioEstimated: {
             display: true,
             displayName: 'Estimation Ratio (Current)',
-            range: { red: 0, yellow: 60, green: 90, direction: 'red,yellow,green' },
+            range: { red: 0, yellow: 60, green: 90, direction: 'red,yellow,green'},
             tooltip: 'Estimation Ratio Tooltip'
         },
         __ratioInProgress: {
             display: true,
-            range: { green: 0, yellow: 25, red: 35, direction: 'green,yellow,red' },
+            range: { green: 0, yellow: 25, red: 35, direction: 'green,yellow,red'},
             displayName: 'Average Daily In-Progress'
         },
         __halfAcceptedRatio: {
             display: true,
-            range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red' },
-            displayName: '50% Accepted Point',
-            displayDate: false
+            range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red'},
+            displayName: '50% Accepted Point'
         },
         __halfAcceptedDate: {
             display: false,
@@ -240,18 +245,18 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         __endCompletionRatio: {
             display: true,
-            range: { red: 0, yellow: 95, green: 100, direction: 'red,yellow,green' },
+            range: { red: 0, yellow: 95, green: 100, direction: 'red,yellow,green'},
             displayName: 'Last Day Completion Ratio'
         },
         __endIncompletionRatio: {
             display: false,
-            range: { green: 0, yellow: 5, red: 10, direction: 'green,yellow,red' },
+            range: { green: 0, yellow: 5, red: 10, direction: 'green,yellow,red'},
             displayName: "Last Day Incompletion Ratio"
         },
         __endAcceptanceRatio: {
             display: true,
             displayName: 'Last Day Acceptance Ratio',
-            range: { red: 0, yellow: 50, green: 91, direction: 'red,yellow,green' }
+            range: { red: 0, yellow: 50, green: 91, direction: 'red,yellow,green'}
         },
         __scopeChurn: {
             display: true,
@@ -268,7 +273,28 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         if (config.hideTaskMovementColumn){
             this.displaySettings.__taskChurn.display = false;
         }
+        this.mixins.observable.constructor.call(this, config);
+
+        this.addEvents(
+            'rangechanged'
+        );
+
+
         //Get settings and preferences here
+        //if (this.getAppId() && this.getSetting('useSavedRanges')){
+        //    Rally.technicalservices.WsapiToolbox.fetchPreferences(this.getAppId()).then({
+        //        scope: this,
+        //        success: function(prefs){
+        //            this.logger.log("preferences",prefs);
+        //            if ( prefs && prefs['rally-tech-services-ranges'] ) {
+        //                this.savedRanges = Ext.JSON.decode(prefs['rally-tech-services-ranges']);
+        //                this.logger.log("savedRanges", this.savedRanges);
+        //            }
+        //            this._definePageDisplay();
+        //        }
+        //    });
+        //} else {
+
     },
     getRenderer: function(field,v,m,r,r_idx, c_idx){
         if (field == 'StartDate' || field == 'EndDate'){
@@ -292,7 +318,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return "";
         },
         __ratioEstimated: function(value,metaData,record){
-            if (this.metric =='count'){
+            if (!this.usePoints){
                 return "N/A";
             }
             if ( value < 0 ) {
@@ -333,7 +359,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 text = "Never";
 
             if (percent < 200) {
-                if (this.displaySettings.__halfAcceptedRatio.displayDate){
+                if (this.showDateForHalfAcceptanceRatio){
                     var date = record.get('__halfAcceptedDate');
                     text = Ext.String.format('{0} ({1})%',this.renderers.shortDate(date), percent);
                 } else {
@@ -369,7 +395,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         shouldBeGrey: function(config, record){
             var check_percent = record.get(config.benchmarkField) * 100;
-            return (check_percent < config.benchmarkGreen && config.metric != 'count');
+            return (check_percent < config.benchmarkGreen && config.usePoints);
         },
         __endCompletionRatio: function(value,metaData,record) {
             if ( value < 0 ) {
@@ -434,15 +460,31 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return "<div style='text-align:center;background-color:" + color + ";'>" + text + "</div>";
         }
 
+    },
+    getRangeColors: function(range){
+        var colors = range.direction.split(',');
+        return colors.slice(-2);
+    },
+    getRangeLabel: function(range){
+        var colors = range.direction.split(',');
+        return Ext.String.format('Range ({0})', colors.join('/'));
+    },
+    setRanges: function(name, range){
+        this.logger.log('setRanges', name, range);
+        //TODO: save ranges
+        this.fireEvent('rangechanged');
+    },
+    getTooltip: function(name){
+        if (this.displaySettings[name]){
+            return this.displaySettings[name].tooltip || this.displaySettings[name].displayName || name;
+        }
+        return name;
     }
 });
 
 
 Ext.define('Rally.technicalservices.util.Health',{
     singleton: true,
-    calculateEstimationRatio: function(value, health_record){
-        return 999;
-    },
     /**
      *
      * @param {} an_array  an array of numbers
@@ -477,10 +519,11 @@ Ext.define('Rally.technicalservices.util.Health',{
         });
         return  variance && variance / Math.abs(variance);
     },
-    getChurn: function(health_hash, array_of_days){
-        var totals = [];
+    getChurn: function(health_hash){
+        var totals = [],
+            days = _.keys(health_hash);
 
-        _.each(array_of_days, function(day){
+        _.each(days, function(day){
             totals.push(Rally.technicalservices.util.Health.getDayTotal(health_hash, day));
         });
 
@@ -495,12 +538,13 @@ Ext.define('Rally.technicalservices.util.Health',{
         }
         return 0;
     },
-    getTaskChurn: function(health_hash, array_of_days, end_date){
+    getTaskChurn: function(health_hash){
 
         var previous_value = null;
-        var last_day_value = null;
+        var last_day_value = null,
+            days = _.keys(health_hash);
 
-        _.each(array_of_days, function(day){
+        _.each(days, function(day){
             if ( last_day_value ) {
                 previous_value = last_day_value;
             }
@@ -512,9 +556,11 @@ Ext.define('Rally.technicalservices.util.Health',{
         }
         return 0;
     },
-    getAverageInState:function(health_hash, array_of_days, state){
-        var totals = [];
-        _.each(array_of_days, function(day){
+    getAverageInState:function(health_hash, state){
+        var totals = [],
+            days = _.keys(health_hash);
+
+        _.each(days, function(day){
             var day_total = Ext.Array.sum(_.values(health_hash[day])),
                 day_in_state = health_hash[day][state] || 0;
 
@@ -684,7 +730,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                 var default_fields = [{
                     name: '__ratioEstimated',
-                    defaultValue: 0
+                    defaultValue: '--'
                 },{
                     name: '__days',
                     convert: function(value, record){
@@ -723,125 +769,129 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     extend: model,
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
-                    reprocess: function(){
-                        if (this.get('__cfdRecords')){
-                            this._processCFD(this.get('__cfdRecords'));
-                        } else {
-                            this.calculate();
-                        }
-                    },
-                    calculate: function() {
+                    calculate: function(usePoints, skipZeroForEstimation) {
 
                         var iteration_oid = this.get('ObjectID');
 
-                        var store = Ext.create('Rally.data.wsapi.Store', {
-                            model: 'IterationCumulativeFlowData',
-                            filters: [{property: 'IterationObjectID', value: iteration_oid}],
-                            fetch: ['CardCount', 'CardEstimateTotal', 'CreationDate', 'IterationObjectID', 'TaskEstimateTotal', 'CardToDoTotal', 'CardState'],
-                            sorters: [{
-                                property: 'CreationDate',
-                                direction: 'ASC'
-                            }],
-                            limit: 'Infinity'
-                        });
+                        if (this.get('__cfdRecords')){
+                             this._processCFD(this.get('__cfdRecords'), usePoints);
+                        } else {
+                            var store = Ext.create('Rally.data.wsapi.Store', {
+                                model: 'IterationCumulativeFlowData',
+                                filters: [{property: 'IterationObjectID', value: iteration_oid}],
+                                fetch: ['CardCount', 'CardEstimateTotal', 'CreationDate', 'IterationObjectID', 'TaskEstimateTotal', 'CardToDoTotal', 'CardState'],
+                                sorters: [{
+                                    property: 'CreationDate',
+                                    direction: 'ASC'
+                                }],
+                                limit: 'Infinity'
+                            });
 
-                        store.load({
-                            scope: this,
-                            callback: function(records, operation, success){
-                                this.logger.log('Iteration CFD callback', success, operation, records.length);
-                                if (success){
-                                    this.set('__cfdRecords',records);
-                                    this._processCFD(records);
-                                } else {
-                                    //Not sure how to handle this.
+                            store.load({
+                                scope: this,
+                                callback: function(records, operation, success){
+                                    this.logger.log('Iteration CFD callback', success, operation, records.length);
+                                    if (success){
+                                        this.set('__cfdRecords',records);
+                                        this._processCFD(records, usePoints);
+                                    } else {
+                                        this.logger.log('Error loading CFD records for Iteration',operation);
+                                        this._setError();
+                                    }
                                 }
-                            }
-                        });
+                            });
 
-                        var iteration_name = this.get('Name');
-                        var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
-                            models: ['Defect', 'UserStory'],
-                            fetch: ['ObjectID','PlanEstimate','ScheduleState'],
-                            filters: [{
-                                property: 'Iteration.Name',
-                                value: iteration_name
-                            }]
-                        });
-                        artifact_store.load({
-                            scope: this,
-                            callback: function(records, operation, success){
-                                this.logger.log('Iteration artifacts callback: ', success, operation, records.length);
-                                if (success){
-                                    this._setArtifacts(records);
-                                } else {
-                                    this.set('__estimationRatio', 'Error');
+                            var iteration_name = this.get('Name');
+                            var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
+                                models: ['Defect', 'UserStory'],
+                                fetch: ['ObjectID','PlanEstimate','ScheduleState'],
+                                filters: [{
+                                    property: 'Iteration.Name',
+                                    value: iteration_name
+                                }]
+                            });
+                            artifact_store.load({
+                                scope: this,
+                                callback: function(records, operation, success){
+                                    this.logger.log('Iteration artifacts callback: ', success, operation, records.length);
+                                    if (success){
+                                        this._setArtifacts(records);
+                                    } else {
+                                        this.set('__estimationRatio', 'Error');
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     },
-                    _processCFD: function(records){
+                    _setError: function(){
 
-                        var daily_plan_estimate_totals = {},
-                            daily_task_estimate_totals = {},
-                            daily_count = {},
-                            array_of_days = [];
+                        var errorString = 'Error';
+
+                        this.set('__ratioInProgress', errorString);
+                        this.set('__halfAcceptedRatio',errorString);
+                        this.set('__halfAcceptedDate',errorString);
+
+                        this.set('__endAcceptanceRatio', errorString);
+                        this.set('__endCompletionRatio', errorString);
+                        this.set('__endIncompletionRatio', errorString);
+
+                        this.set('__scopeChurn',errorString);
+                        this.set('__taskChurn',errorString);
+
+                    },
+                    _processCFD: function(records, usePoints){
+
+                        var daily_totals = {},
+                            daily_task_estimate_totals = {};
 
                         Ext.Array.each(records, function(cf) {
                             var card_date = cf.get('CreationDate');
 
-
                             if (this._isValidDate(card_date)){
-                                var card_plan_estimate = cf.get('CardEstimateTotal') || 0,
+                                var card_total = cf.get('CardEstimateTotal') || 0,
                                     card_state = cf.get('CardState'),
-                                    card_task_estimate = cf.get('TaskEstimateTotal') || 0,
-                                    card_count = cf.get('CardCount')  || 0;
+                                    card_task_estimate = cf.get('TaskEstimateTotal') || 0;
 
-                                array_of_days.push(card_date);
+                                if (!usePoints){
+                                    card_total = cf.get('CardCount') || 0;
+                                }
 
-                                if (!daily_plan_estimate_totals[card_date]){
-                                    daily_plan_estimate_totals[card_date] = {};
+                                if (!daily_totals[card_date]){
+                                    daily_totals[card_date] = {};
                                 }
                                 if (!daily_task_estimate_totals[card_date]){
                                     daily_task_estimate_totals[card_date] = {};
                                 }
-                                if (!daily_count[card_date]){
-                                    daily_count[card_date] = {};
-                                }
 
-                                if (!daily_plan_estimate_totals[card_date][card_state]){
-                                    daily_plan_estimate_totals[card_date][card_state] = 0;
+                                if (!daily_totals[card_date][card_state]){
+                                    daily_totals[card_date][card_state] = 0;
                                 }
                                 if (!daily_task_estimate_totals[card_date][card_state]){
                                     daily_task_estimate_totals[card_date][card_state] = 0;
                                 }
-                                if (!daily_count[card_date][card_state]){
-                                    daily_count[card_date][card_state] = 0;
-                                }
-                                daily_plan_estimate_totals[card_date][card_state] += card_plan_estimate;
+                                daily_totals[card_date][card_state] += card_total;
                                 daily_task_estimate_totals[card_date][card_state] += card_task_estimate;
-                                daily_count[card_date][card_state] += card_count;
                             }
                         }, this);
 
                         var done_states = ["Accepted"],
                             completed_state = "Completed",
                             days = this.get('__days');
-                        console.log('__days',days);
 
-                        this.set('__ratioInProgress',Rally.technicalservices.util.Health.getAverageInState(daily_plan_estimate_totals, array_of_days, "In-Progress"));
+                        this.set('__ratioInProgress',Rally.technicalservices.util.Health.getAverageInState(daily_totals,  "In-Progress"));
 
-                        var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_plan_estimate_totals, done_states, days);
+                        var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, done_states, days);
                         this.set('__halfAcceptedRatio',half_accepted_ratio.Ratio);
                         this.set('__halfAcceptedDate',half_accepted_ratio.ratioDate);
 
-                        this.set('__endAcceptanceRatio', Rally.technicalservices.util.Health.getAcceptanceRatio(daily_plan_estimate_totals, done_states))
+                        this.set('__endAcceptanceRatio', Rally.technicalservices.util.Health.getAcceptanceRatio(daily_totals, done_states))
 
-                        var incompletion_stats = Rally.technicalservices.util.Health.getIncompletionRatio(daily_plan_estimate_totals,done_states, completed_state);
+                        var incompletion_stats = Rally.technicalservices.util.Health.getIncompletionRatio(daily_totals,done_states, completed_state);
                         this.set('__endCompletionRatio', incompletion_stats.CompletionRatio);
                         this.set('__endIncompletionRatio', incompletion_stats.IncompletionRatio);
 
-                        this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_plan_estimate_totals, array_of_days));
-                        this.set('__taskChurn',Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals, array_of_days));
+                        this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_totals));
+                        this.set('__taskChurn',Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals));
 
 
                     },
@@ -863,18 +913,19 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
                         return false;
                     },
-                    _setArtifacts: function(records){
-                       var plan_estimate_total = 0,
-                           count_of_estimated_artifacts = 0;
+                    _setArtifacts: function(records, skipZero){
+                       var count_of_estimated_artifacts = 0;
 
                         Ext.Array.each(records,function(artifact){
-                            var plan_estimate = artifact.get('PlanEstimate') || 0;
-                            plan_estimate_total += plan_estimate;
-                            if ( plan_estimate > 0 ) {
-                                count_of_estimated_artifacts++;
+                            if (!skipZero || (skipZero && artifact.get('PlanEstimate') !== 0)){
+                                var plan_estimate = artifact.get('PlanEstimate') || 0;
+
+                                if ( plan_estimate > 0 ) {
+                                    count_of_estimated_artifacts++;
+                                }
                             }
                         });
-                        console.log('estimated ratio', count_of_estimated_artifacts, records.length);
+                        this.logger.log('estimated ratio', count_of_estimated_artifacts, records.length);
                         if (records.length > 0){
                             this.set('__ratioEstimated',count_of_estimated_artifacts/records.length);
                         }
@@ -1000,7 +1051,7 @@ Ext.define("rally-iteration-health", {
     defaults: { margin: 10 },
     config: {
         defaultSettings: {
-            hideAcceptanceRateScoreColumn:  true,
+            showDateForHalfAcceptanceRatio:  false,
             hideTaskMovementColumn: true,
             useSavedRanges: false
         }
@@ -1018,7 +1069,12 @@ Ext.define("rally-iteration-health", {
 
         this.healthConfig = Ext.create('Rally.technicalservices.healthConfiguration',{
             appId: this.getAppId(),
-            hideTaskMovementColumn: this.getSetting('hideTaskMovementColumn')
+            hideTaskMovementColumn: this.getSetting('hideTaskMovementColumn'),
+            showDateForHalfAcceptanceRatio: this.getSetting('showDateForHalfAcceptanceRatio'),
+            listeners: {
+                scope: this,
+                rangechanged: this._refreshView
+            }
         });
 
         var project_oid = this.getContext().getProject().ObjectID;
@@ -1031,6 +1087,12 @@ Ext.define("rally-iteration-health", {
                 Rally.ui.notify.Notifier.showError({message: msg});
             }
         });
+    },
+    _refreshView: function(){
+        this.logger.log('_refreshView');
+        if (this.down('rallygrid')){
+            this.down('rallygrid').getView().refresh();
+        }
     },
     _initApp: function(child_project_count){
         this.down('#criteria_box').removeAll();
@@ -1122,9 +1184,6 @@ Ext.define("rally-iteration-health", {
                         this.logger.log("IterationHealthStore callback: ", success, operation, records);
                         if (success){
                             if (records.length > 0) {
-                                _.each(records, function (r) {
-                                    r.calculate();
-                                });
                                 this._updateDisplay();
                             } else {
                                 this.down('#display_box').add({
@@ -1147,19 +1206,14 @@ Ext.define("rally-iteration-health", {
         });
     },
     _getColumnCfgs: function(){
-        var display_config = this.healthConfig.displaySettings,
-            config = this.healthConfig,
+        var config = this.healthConfig,
             column_cfgs = [];
 
-        if (this.down('rallygrid')){
-            this.down('rallygrid').destroy();
-        }
-
-        _.each(display_config, function(col, key){
+        _.each(config.displaySettings, function(col, key){
             if (col.display){
                 var cfg = {
                     dataIndex: key,
-                    text: col.displayName,
+                    text: col.displayName || key,
                     scope: config
                 };
                 if (col.range){
@@ -1175,50 +1229,84 @@ Ext.define("rally-iteration-health", {
         return column_cfgs;
     },
     _showColumnDescription: function(ct, column, evt, target_element, eOpts){
-        if (this.dialog){this.dialog.destroy();}
-        this.dialog = Ext.create('Rally.ui.popover.Popover',{
+        if (this.dialog){
+            this.dialog.destroy();
+        }
+
+        var tool_tip = this.healthConfig.getTooltip(column.dataIndex);
+
+        var items = [{
+                cls: 'ts_popover_description',
+                xtype:'container',
+                html: tool_tip
+            }],
+            adjustor = this.getAdjustor(column);
+        if (adjustor){
+            items.push(adjustor);
+        }
+
+        this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
             defaults: { padding: 5, margin: 5 },
             closable: true,
             draggable: true,
             title: column.text,
-            items: [{
-                cls: 'ts_popover_description',
-                xtype:'container',
-                html: 'html'
-            },
-                //    TSDescriptions.getAdjustor(column,cell_renderer)
-            ]
+            items: items
         });
         this.dialog.show();
     },
-    _updateDisplay: function(){
-        var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null;
-        this.healthConfig.metric = metric_type;
+    getAdjustor: function(column){
+        var config = this.healthConfig;
 
-        this.logger.log('_updateDisplay', this.iterationHealthStore, metric_type);
+        if ( config.displaySettings[column.dataIndex] && config.displaySettings[column.dataIndex].range) {
+            var ranges = config.displaySettings[column.dataIndex].range,
+                colors = config.getRangeColors(ranges),
+                field_label = config.getRangeLabel(ranges),
+                values = [ranges[colors[0]] || 50,ranges[colors[1]] || 75];
+
+            return {
+                xtype:'multislider',
+                fieldLabel: field_label,
+                width: 400,
+                values: values,
+                increment: 5,
+                minValue: 0,
+                maxValue: 100,
+                tipText:function(thumb){ return colors[thumb.index] + ": above " + thumb.value; },
+                listeners: {
+                    changecomplete: function(slider,new_value,thumb){
+                        values[thumb.index] = new_value;
+                        ranges[colors[thumb.index]] = new_value;
+                        config.setRanges(column.dataIndex,ranges);
+
+                    }
+                }
+            };
+        }
+
+        return null;
+    },
+
+
+    _updateDisplay: function(){
+        var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null,
+            use_points = (metric_type == 'points'),
+            skip_zero = this.healthConfig.skipZeroForEstimationRatio;
+        this.healthConfig.usePoints = use_points;
+
+        this.logger.log('_updateDisplay', this.iterationHealthStore, metric_type, use_points);
         if (!this.iterationHealthStore || metric_type == null){
             return;
         }
+
+
+        //Update the store to load supporting records or recalculate with different metric.
+        _.each(this.iterationHealthStore.getRecords(), function(r){
+            r.calculate(use_points, skip_zero);
+        });
+
         var column_cfgs = this._getColumnCfgs();
 
         this._displayGrid(this.iterationHealthStore, column_cfgs);
-
-        //if (this.getAppId() && this.getSetting('useSavedRanges')){
-        //    Rally.technicalservices.WsapiToolbox.fetchPreferences(this.getAppId()).then({
-        //        scope: this,
-        //        success: function(prefs){
-        //            this.logger.log("preferences",prefs);
-        //            if ( prefs && prefs['rally-tech-services-ranges'] ) {
-        //                this.savedRanges = Ext.JSON.decode(prefs['rally-tech-services-ranges']);
-        //                this.logger.log("savedRanges", this.savedRanges);
-        //            }
-        //            this._definePageDisplay();
-        //        }
-        //    });
-        //} else {
-        //    this.logger.log("Preferences will not be saved");
-        //    this._definePageDisplay();
-        //}
     },
     _displayGrid: function(store, column_cfgs){
         this.down('#display_box').removeAll();
@@ -1230,6 +1318,7 @@ Ext.define("rally-iteration-health", {
             showPagingToolbar: false,
             enableBulkEdit: false,
             showRowActionsColumn: false,
+            enableEditing: false,
             columnCfgs: column_cfgs
         });
     },
@@ -1258,26 +1347,30 @@ Ext.define("rally-iteration-health", {
         this.launch();
     },
     getSettingsFields: function() {
-        var me = this;
 
-        return [
-            {
-                name: 'hideAcceptanceRateScore',
-                xtype: 'rallycheckboxfield',
-                boxLabelAlign: 'after',
-                fieldLabel: '',
-                margin: '0 0 25 200',
-                boxLabel: 'Hide Acceptance Rate Score Column'
-            },
-            {
-                name: 'hideTaskMovementColumn',
-                xtype: 'rallycheckboxfield',
-                boxLabelAlign: 'after',
-                fieldLabel: '',
-                margin: '0 0 25 200',
-                boxLabel: 'Hide Task Movement Column'
-            }
-        ];
+        var settings = [],
+            half_accepted_ratio_name = this.healthConfig.displaySettings.__halfAcceptedRatio.displayName,
+            task_churn_name = this.healthConfig.displaySettings.__taskChurn.displayName;
+
+        if (this.healthConfig.displaySettings.__halfAcceptedRatio.display){
+            settings.push({
+                    name: 'showDateForHalfAcceptanceRatio',
+                    xtype: 'rallycheckboxfield',
+                    boxLabelAlign: 'after',
+                    fieldLabel: '',
+                    margin: '0 0 25 200',
+                    boxLabel: 'Show date for ' + half_accepted_ratio_name
+                });
+        }
+        settings.push({
+            name: 'hideTaskMovementColumn',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: '0 0 25 200',
+            boxLabel: 'Hide ' + task_churn_name
+        });
+        return settings;
     },
     //showSettings:  Override
     showSettings: function(options) {
@@ -1335,6 +1428,16 @@ Ext.define("rally-iteration-health", {
     margin-top: 25px;
     margin-right: 5px;
     cursor: pointer;
+}
+
+.ts_popover_description {
+    background-color: white;
+    padding: 3px;
+    width: 400px;
+}
+
+.ts_popover_description h1 {
+    margin: 3px 0px;
 }
     </style>
 

@@ -49,7 +49,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     extend: model,
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
-                    calculate: function(usePoints) {
+                    calculate: function(usePoints, skipZeroForEstimation) {
 
                         var iteration_oid = this.get('ObjectID');
 
@@ -193,15 +193,16 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
                         return false;
                     },
-                    _setArtifacts: function(records){
-                       var plan_estimate_total = 0,
-                           count_of_estimated_artifacts = 0;
+                    _setArtifacts: function(records, skipZero){
+                       var count_of_estimated_artifacts = 0;
 
                         Ext.Array.each(records,function(artifact){
-                            var plan_estimate = artifact.get('PlanEstimate') || 0;
-                            plan_estimate_total += plan_estimate;
-                            if ( plan_estimate > 0 ) {
-                                count_of_estimated_artifacts++;
+                            if (!skipZero || (skipZero && artifact.get('PlanEstimate') !== 0)){
+                                var plan_estimate = artifact.get('PlanEstimate') || 0;
+
+                                if ( plan_estimate > 0 ) {
+                                    count_of_estimated_artifacts++;
+                                }
                             }
                         });
                         this.logger.log('estimated ratio', count_of_estimated_artifacts, records.length);
