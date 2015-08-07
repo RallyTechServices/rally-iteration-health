@@ -5,7 +5,7 @@ Ext.define("rally-iteration-health", {
     defaults: { margin: 10 },
     config: {
         defaultSettings: {
-            hideAcceptanceRateScoreColumn:  true,
+            showDateForHalfAcceptanceRatio:  false,
             hideTaskMovementColumn: true,
             useSavedRanges: false
         }
@@ -23,7 +23,8 @@ Ext.define("rally-iteration-health", {
 
         this.healthConfig = Ext.create('Rally.technicalservices.healthConfiguration',{
             appId: this.getAppId(),
-            hideTaskMovementColumn: this.getSetting('hideTaskMovementColumn')
+            hideTaskMovementColumn: this.getSetting('hideTaskMovementColumn'),
+            showDateForHalfAcceptanceRatio: this.getSetting('showDateForHalfAcceptanceRatio')
         });
 
         var project_oid = this.getContext().getProject().ObjectID;
@@ -245,26 +246,27 @@ Ext.define("rally-iteration-health", {
         this.launch();
     },
     getSettingsFields: function() {
-        var me = this;
 
-        return [
-            {
-                name: 'hideAcceptanceRateScore',
-                xtype: 'rallycheckboxfield',
-                boxLabelAlign: 'after',
-                fieldLabel: '',
-                margin: '0 0 25 200',
-                boxLabel: 'Hide Acceptance Rate Score Column'
-            },
-            {
-                name: 'hideTaskMovementColumn',
-                xtype: 'rallycheckboxfield',
-                boxLabelAlign: 'after',
-                fieldLabel: '',
-                margin: '0 0 25 200',
-                boxLabel: 'Hide Task Movement Column'
-            }
-        ];
+        var settings = [];
+        if (this.healthConfig.displaySettings.__halfAcceptedRatio.display){
+            settings.push({
+                    name: 'showDateForHalfAcceptanceRatio',
+                    xtype: 'rallycheckboxfield',
+                    boxLabelAlign: 'after',
+                    fieldLabel: '',
+                    margin: '0 0 25 200',
+                    boxLabel: 'Show date for Half Acceptance Ratio'
+                });
+        }
+        settings.push({
+            name: 'hideTaskMovementColumn',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: '0 0 25 200',
+            boxLabel: 'Hide Task Movement Column'
+        });
+        return settings;
     },
     //showSettings:  Override
     showSettings: function(options) {

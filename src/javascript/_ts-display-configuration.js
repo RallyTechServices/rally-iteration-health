@@ -1,12 +1,13 @@
 Ext.define('Rally.technicalservices.healthConfiguration',{
-
+    logger: new Rally.technicalservices.Logger(),
     /**
      * Configurations set by the app
      */
-    metricType: undefined,
+    usePoints: true,
     hideTaskMovementColumn: false,
     appId: undefined,
     useSavedRanges: false,
+    showDateForHalfAcceptanceRatio: false,
 
     /**
      * Colors for Cell Renderers
@@ -54,8 +55,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __halfAcceptedRatio: {
             display: true,
             range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red' },
-            displayName: '50% Accepted Point',
-            displayDate: false
+            displayName: '50% Accepted Point'
         },
         __halfAcceptedDate: {
             display: false,
@@ -129,7 +129,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return "";
         },
         __ratioEstimated: function(value,metaData,record){
-            if (this.metric =='count'){
+            if (!this.usePoints){
                 return "N/A";
             }
             if ( value < 0 ) {
@@ -170,7 +170,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 text = "Never";
 
             if (percent < 200) {
-                if (this.displaySettings.__halfAcceptedRatio.displayDate){
+                if (this.showDateForHalfAcceptanceRatio){
                     var date = record.get('__halfAcceptedDate');
                     text = Ext.String.format('{0} ({1})%',this.renderers.shortDate(date), percent);
                 } else {
@@ -206,7 +206,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         shouldBeGrey: function(config, record){
             var check_percent = record.get(config.benchmarkField) * 100;
-            return (check_percent < config.benchmarkGreen && config.metric != 'count');
+            return (check_percent < config.benchmarkGreen && config.usePoints);
         },
         __endCompletionRatio: function(value,metaData,record) {
             if ( value < 0 ) {
