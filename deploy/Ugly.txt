@@ -3,10 +3,10 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Aug 07 2015 10:21:56 GMT-0600 (MDT) -->
+    <!--  Build Date: Fri Aug 07 2015 15:19:16 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Aug 07 2015 10:21:56 GMT-0600 (MDT)";
+        var APP_BUILD_DATE = "Fri Aug 07 2015 15:19:16 GMT-0600 (MDT)";
         var CHECKSUM = [%= checksum %];
     </script>
     
@@ -51,6 +51,15 @@
 .ts_popover_description h1 {
     margin: 3px 0px;
     font-size: 14px;
+}
+
+.icon-plus {
+    font-size: 14px;
+    color: #888;
+}
+.icon-minus {
+    font-size: 14px;
+    color: #888;
 }
     </style>
 

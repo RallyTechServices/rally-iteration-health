@@ -1,7 +1,7 @@
 Ext.define('Rally.technicalservices.WsapiToolbox',{
     singleton: true,
 
-    fetchScheduleStateValues: function(){
+    fetchDoneStates: function(){
         var deferred = Ext.create('Deft.Deferred');
         Rally.data.ModelFactory.getModel({
             type: 'HierarchicalRequirement',
@@ -10,7 +10,13 @@ Ext.define('Rally.technicalservices.WsapiToolbox',{
                 field.getAllowedValueStore().load({
                     callback: function(records, operation, success) {
                         if (success){
-                            var values = _.map(records, function(r){return r.get('StringValue')});
+                            var values = [];
+                            for (var i=records.length - 1; i > 0; i--){
+                                values.push(records[i].get('StringValue'));
+                                if (records[i].get('StringValue') == "Accepted"){
+                                    i = 0;
+                                }
+                            }
                             deferred.resolve(values);
                         } else {
                             deferred.reject('Error loading ScheduleState values for User Story:  ' + operation.error.errors.join(','));

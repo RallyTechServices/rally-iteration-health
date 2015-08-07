@@ -10,7 +10,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                 var default_fields = [{
                     name: '__ratioEstimated',
-                    defaultValue: '--'
+                    defaultValue: 0
                 },{
                     name: '__days',
                     convert: function(value, record){
@@ -49,12 +49,12 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     extend: model,
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
-                    calculate: function(usePoints, skipZeroForEstimation) {
+                    calculate: function(usePoints, skipZeroForEstimation, doneStates) {
 
                         var iteration_oid = this.get('ObjectID');
 
                         if (this.get('__cfdRecords')){
-                             this._processCFD(this.get('__cfdRecords'), usePoints);
+                             this._processCFD(this.get('__cfdRecords'), usePoints, doneStates);
                         } else {
                             var store = Ext.create('Rally.data.wsapi.Store', {
                                 model: 'IterationCumulativeFlowData',
@@ -70,10 +70,10 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             store.load({
                                 scope: this,
                                 callback: function(records, operation, success){
-                                    this.logger.log('Iteration CFD callback', success, operation, records.length);
+                                    this.logger.log('Iteration CFD callback', success, operation, records, records.length);
                                     if (success){
                                         this.set('__cfdRecords',records);
-                                        this._processCFD(records, usePoints);
+                                        this._processCFD(records, usePoints, doneStates);
                                     } else {
                                         this.logger.log('Error loading CFD records for Iteration',operation);
                                         this._setError();
@@ -81,14 +81,22 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                 }
                             });
 
-                            var iteration_name = this.get('Name');
+                            var iteration_name = this.get('Name'),
+                                filters = [{
+                                    property: 'Iteration.Name',
+                                    value: iteration_name
+                                }];
+                            if (skipZeroForEstimation){
+                                filters.push({
+                                    property: 'PlanEstimate',
+                                    operator: '!=',
+                                    value: 0
+                                });
+                            }
                             var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
                                 models: ['Defect', 'UserStory'],
                                 fetch: ['ObjectID','PlanEstimate','ScheduleState'],
-                                filters: [{
-                                    property: 'Iteration.Name',
-                                    value: iteration_name
-                                }]
+                                filters: filters
                             });
                             artifact_store.load({
                                 scope: this,
@@ -119,7 +127,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         this.set('__taskChurn',errorString);
 
                     },
-                    _processCFD: function(records, usePoints){
+                    _processCFD: function(records, usePoints, doneStates){
 
                         var daily_totals = {},
                             daily_task_estimate_totals = {};
@@ -154,24 +162,28 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             }
                         }, this);
 
-                        var done_states = ["Accepted"],
-                            completed_state = "Completed",
+                        var completed_state = "Completed",
+                            inprogress_state = "In-Progress",
                             days = this.get('__days');
 
-                        this.set('__ratioInProgress',Rally.technicalservices.util.Health.getAverageInState(daily_totals,  "In-Progress"));
+                        this.set('__ratioInProgress',Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state));
 
-                        var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, done_states, days);
+                        var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, doneStates, days);
                         this.set('__halfAcceptedRatio',half_accepted_ratio.Ratio);
                         this.set('__halfAcceptedDate',half_accepted_ratio.ratioDate);
 
-                        this.set('__endAcceptanceRatio', Rally.technicalservices.util.Health.getAcceptanceRatio(daily_totals, done_states))
+                        this.set('__endAcceptanceRatio', Rally.technicalservices.util.Health.getAcceptanceRatio(daily_totals, doneStates))
 
-                        var incompletion_stats = Rally.technicalservices.util.Health.getIncompletionRatio(daily_totals,done_states, completed_state);
+                        var incompletion_stats = Rally.technicalservices.util.Health.getIncompletionRatio(daily_totals,doneStates, completed_state);
                         this.set('__endCompletionRatio', incompletion_stats.CompletionRatio);
                         this.set('__endIncompletionRatio', incompletion_stats.IncompletionRatio);
 
                         this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_totals));
-                        this.set('__taskChurn',Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals));
+
+                        var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
+                        if (task_churn){
+                            this.set('__taskChurn',task_churn);
+                        }
 
 
                     },
@@ -193,20 +205,17 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
                         return false;
                     },
-                    _setArtifacts: function(records, skipZero){
+                    _setArtifacts: function(records){
                        var count_of_estimated_artifacts = 0;
 
                         Ext.Array.each(records,function(artifact){
-                            if (!skipZero || (skipZero && artifact.get('PlanEstimate') !== 0)){
-                                var plan_estimate = artifact.get('PlanEstimate');
-
-                                if ( !isNaN(plan_estimate)) {
-                                    count_of_estimated_artifacts++;
-                                }
+                           var plan_estimate = artifact.get('PlanEstimate');
+                            if (plan_estimate && plan_estimate >= 0) {
+                                count_of_estimated_artifacts++;
                             }
                         });
-                        this.logger.log('estimated ratio', count_of_estimated_artifacts, records.length);
-                        if (records.length > 0){
+                        this.logger.log('estimated ratio estimated: ', count_of_estimated_artifacts, ' total: ',  records.length);
+                        if (records && records.length > 0){
                             this.set('__ratioEstimated',count_of_estimated_artifacts/records.length);
                         }
                     }

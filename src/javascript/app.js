@@ -5,8 +5,8 @@ Ext.define("rally-iteration-health", {
     defaults: { margin: 10 },
     config: {
         defaultSettings: {
-            showDateForHalfAcceptanceRatio:  false,
-            hideTaskMovementColumn: true,
+            showDateForHalfAcceptanceRatio:  true,
+            hideTaskMovementColumn: false,
             useSavedRanges: false
         }
     },
@@ -23,15 +23,13 @@ Ext.define("rally-iteration-health", {
 
         this.healthConfig = Ext.create('Rally.technicalservices.healthConfiguration',{
             appId: this.getAppId(),
-            hideTaskMovementColumn: this.getSetting('hideTaskMovementColumn'),
-            showDateForHalfAcceptanceRatio: this.getSetting('showDateForHalfAcceptanceRatio'),
             listeners: {
                 scope: this,
                 rangechanged: this._refreshView,
                 ready: this._initApp
             }
         });
-
+        this.healthConfig.updateSettings(this.getSettings());
 
     },
     _refreshView: function(){
@@ -43,14 +41,19 @@ Ext.define("rally-iteration-health", {
     _initApp: function(child_project_count){
 
         var project_oid = this.getContext().getProject().ObjectID;
-        Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]).then({
+
+        var promises = [Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]),
+                Rally.technicalservices.WsapiToolbox.fetchDoneStates()];
+
+            Deft.Promise.all(promises).then({
             scope: this,
-            success: function(child_project_count){
+            success: function(results){
                 this.down('#criteria_box').removeAll();
 
-                this.logger.log('_initApp', child_project_count);
-                if (child_project_count == 0){
+                this.logger.log('_initApp child project count:', results[0], 'Schedule States', results[1]);
+                if (results[0] == 0){
                     this._initForLeafProject();
+                    this.healthConfig.doneStates = results[1];
                 } else {
                     this.down('#criteria_box').add({
                         xtype:'container',
@@ -127,6 +130,9 @@ Ext.define("rally-iteration-health", {
                     model: model,
                     limit: num_iterations,
                     pageSize: num_iterations,
+                    context: {
+                        project: this.getContext().getProject()._ref
+                    },
                     sorters: [{
                         property: 'EndDate',
                         direction: 'DESC'
@@ -153,7 +159,7 @@ Ext.define("rally-iteration-health", {
                             }
                         } else {
                             this.iterationHealthStore = null;
-                            Rally.ui.notify.Notifier.showError({message: 'Error loading Iteration Health Store: ' + operation.error.error.join(',')});
+                            Rally.ui.notify.Notifier.showError({message: 'Error loading Iteration Health Store: ' + operation.error.errors.join(',')});
                         }
                     }
                 });
@@ -260,8 +266,8 @@ Ext.define("rally-iteration-health", {
 
         //Update the store to load supporting records or recalculate with different metric.
         _.each(this.iterationHealthStore.getRecords(), function(r){
-            r.calculate(use_points, skip_zero);
-        });
+            r.calculate(use_points, skip_zero, this.healthConfig.doneStates);
+        }, this);
 
         var column_cfgs = this._getColumnCfgs();
 
@@ -358,6 +364,7 @@ Ext.define("rally-iteration-health", {
     _onSettingsSaved: function(settings){
         Ext.apply(this.settings, settings);
         this._hideSettings();
+        this.healthConfig.updateSettings(settings);
         this.onSettingsUpdate(settings);
     }
 });

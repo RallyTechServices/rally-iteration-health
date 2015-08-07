@@ -32,7 +32,10 @@ Ext.define('Rally.technicalservices.util.Health',{
             }
             last_value = totals;
         });
-        return  variance && variance / Math.abs(variance);
+        if (variance && variance !== 0){
+            return variance / Math.abs(variance);
+        }
+        return 1;
     },
     getChurn: function(health_hash){
         var totals = [],
@@ -45,6 +48,7 @@ Ext.define('Rally.technicalservices.util.Health',{
         var stdev = Rally.technicalservices.util.Health.getStandardDeviation(totals),
             dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00"),
             direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
+        console.log('churn',stdev,dev_ratio,direction);
         return dev_ratio * direction;
     },
     getDayTotal: function(hash, key){
@@ -69,7 +73,7 @@ Ext.define('Rally.technicalservices.util.Health',{
         if ( last_day_value && previous_value && previous_value > 0 ) {
             return Ext.util.Format.number(Math.abs(( previous_value - last_day_value )/previous_value),"0.00");
         }
-        return 0;
+        return null;
     },
     getAverageInState:function(health_hash, state){
         var totals = [],

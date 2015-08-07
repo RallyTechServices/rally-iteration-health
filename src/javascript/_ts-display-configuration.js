@@ -7,11 +7,9 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
      * Configurations set by the app
      */
     usePoints: true,
-    hideTaskMovementColumn: false,
     appId: undefined,
-    useSavedRanges: false,
     showDateForHalfAcceptanceRatio: false,
-    skipZeroForEstimationRatio: true,
+    skipZeroForEstimationRatio: false,
 
     /**
      * Colors for Cell Renderers
@@ -160,9 +158,6 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
     constructor: function(config){
         Ext.apply(this, config);
-        if (config.hideTaskMovementColumn){
-            this.displaySettings.__taskChurn.display = false;
-        }
         this.mixins.observable.constructor.call(this, config);
 
         this.addEvents(
@@ -256,7 +251,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             if (percent < 200) {
                 if (this.showDateForHalfAcceptanceRatio){
                     var date = record.get('__halfAcceptedDate');
-                    text = Ext.String.format('{0} ({1})%',this.renderers.shortDate(date), percent);
+                    text = Ext.String.format('{1}% ({0})',this.renderers.shortDate(date), percent);
                 } else {
                     text = Ext.String.format('{0}%',percent);
                 }
@@ -324,23 +319,18 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __scopeChurn: function(value,metaData,record) {
 
             var color = this.renderers.shouldBeGrey(this,record) ? this.grey : "white";
-
+            this.logger.log('__scopeChurn',value, record);
             var direction = 1,
                 icon_string = "";
             if (value != 0){
                 direction = value/Math.abs(value);
-                var icon = direction < 0 ? "icon-arrow-down" : "icon-arrow-up" ; //"<img src='/slm/mashup/1.11/images/plus.gif' title='up'>";
+                var icon = direction < 0 ? "icon-minus" : "icon-plus" ; //"<img src='/slm/mashup/1.11/images/plus.gif' title='up'>";
                 icon_string = Ext.String.format('<div class= "control {0}" style:="display:inline;"></div>&nbsp;', icon);
             }
 
             var percent = parseInt( 100 * Math.abs(value), 10 );
 
             metaData.style = "background-color: " + color;
-
-            var icon = "icon-arrow-up" ; //"<img src='/slm/mashup/1.11/images/plus.gif' title='up'>";
-            if (direction < 0){
-                icon = "icon-arrow-down";
-            }
             return Ext.String.format('<div style="text-align:center;background-color:{0};">{2}&nbsp;{1}%</div>',color,percent,icon_string);
         },
         __taskChurn: function(value,metaData,record) {
@@ -396,6 +386,13 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return this.displaySettings[name].tooltip || this.displaySettings[name].displayName || name;
         }
         return name;
+    },
+    updateSettings: function(settings){
+        this.hideTaskMovementColumn = settings.hideTaskMovementColumn;
+        if (settings.hideTaskMovementColumn){
+            this.displaySettings.__taskChurn.display = false;
+        }
+        this.showDateForHalfAcceptanceRatio = settings.showDateForHalfAcceptanceRatio;
     }
 });
 
