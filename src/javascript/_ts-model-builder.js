@@ -14,7 +14,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                 },{
                     name: '__days',
                     convert: function(value, record){
-                        return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true);
+                        return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true) + 1;
                     }
                 },{
                     name: '__ratioInProgress',
