@@ -27,20 +27,12 @@ Ext.define("rally-iteration-health", {
             showDateForHalfAcceptanceRatio: this.getSetting('showDateForHalfAcceptanceRatio'),
             listeners: {
                 scope: this,
-                rangechanged: this._refreshView
+                rangechanged: this._refreshView,
+                ready: this._initApp
             }
         });
 
-        var project_oid = this.getContext().getProject().ObjectID;
-        Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]).then({
-            scope: this,
-            success: function(record_count){
-                this._initApp(record_count);
-            },
-            failure: function(msg){
-                Rally.ui.notify.Notifier.showError({message: msg});
-            }
-        });
+
     },
     _refreshView: function(){
         this.logger.log('_refreshView');
@@ -49,17 +41,30 @@ Ext.define("rally-iteration-health", {
         }
     },
     _initApp: function(child_project_count){
-        this.down('#criteria_box').removeAll();
-        this.logger.log('_initApp', child_project_count);
-        if (child_project_count == 0){
-            this._initForLeafProject();
-        } else {
-            this.down('#criteria_box').add({
-                xtype:'container',
-                html:'This app is designed for use at the team level.' +
-                '<br/>Change the context selector to a leaf team node.'
-            });
-        }
+
+        var project_oid = this.getContext().getProject().ObjectID;
+        Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]).then({
+            scope: this,
+            success: function(child_project_count){
+                this.down('#criteria_box').removeAll();
+
+                this.logger.log('_initApp', child_project_count);
+                if (child_project_count == 0){
+                    this._initForLeafProject();
+                } else {
+                    this.down('#criteria_box').add({
+                        xtype:'container',
+                        html:'This app is designed for use at the team level.' +
+                        '<br/>Change the context selector to a leaf team node.'
+                    });
+                }
+            },
+            failure: function(msg){
+                Rally.ui.notify.Notifier.showError({message: msg});
+            }
+        });
+
+
     },
     _initForLeafProject: function(){
         this.down('#criteria_box').add({

@@ -198,9 +198,9 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                         Ext.Array.each(records,function(artifact){
                             if (!skipZero || (skipZero && artifact.get('PlanEstimate') !== 0)){
-                                var plan_estimate = artifact.get('PlanEstimate') || 0;
+                                var plan_estimate = artifact.get('PlanEstimate');
 
-                                if ( plan_estimate > 0 ) {
+                                if ( !isNaN(plan_estimate)) {
                                     count_of_estimated_artifacts++;
                                 }
                             }

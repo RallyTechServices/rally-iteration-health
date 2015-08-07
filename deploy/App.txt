@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Aug 07 2015 08:21:47 GMT-0600 (MDT) -->
+    <!--  Build Date: Fri Aug 07 2015 10:21:56 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Aug 07 2015 08:21:47 GMT-0600 (MDT)";
-        var CHECKSUM = 67991475566;
+        var APP_BUILD_DATE = "Fri Aug 07 2015 10:21:56 GMT-0600 (MDT)";
+        var CHECKSUM = 70045821824;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -344,24 +344,29 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         this.mixins.observable.constructor.call(this, config);
 
         this.addEvents(
-            'rangechanged'
+            'rangechanged',
+            'ready'
         );
 
-
         //Get settings and preferences here
-        //if (this.getAppId() && this.getSetting('useSavedRanges')){
-        //    Rally.technicalservices.WsapiToolbox.fetchPreferences(this.getAppId()).then({
-        //        scope: this,
-        //        success: function(prefs){
-        //            this.logger.log("preferences",prefs);
-        //            if ( prefs && prefs['rally-tech-services-ranges'] ) {
-        //                this.savedRanges = Ext.JSON.decode(prefs['rally-tech-services-ranges']);
-        //                this.logger.log("savedRanges", this.savedRanges);
-        //            }
-        //            this._definePageDisplay();
-        //        }
-        //    });
-        //} else {
+        if (this.appId){
+            Rally.technicalservices.WsapiToolbox.fetchPreferences(this.appId).then({
+                scope: this,
+                success: function(prefs){
+                    this.logger.log("preferences",prefs);
+                    if ( prefs && prefs['rally-tech-services-ranges'] ) {
+                        var savedRanges = Ext.JSON.decode(prefs['rally-tech-services-ranges']);
+                        _.each(savedRanges,function(value, key){
+                            this.displaySettings[key].range = value;
+                        }, this);
+                        this.logger.log("savedRanges", savedRanges);
+                        this.fireEvent('ready');
+                    }
+                }
+            });
+        } else {
+            this.fireEvent('ready');
+        }
 
     },
     getRenderer: function(field,v,m,r,r_idx, c_idx){
@@ -539,7 +544,29 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     },
     setRanges: function(name, range){
         this.logger.log('setRanges', name, range);
-        //TODO: save ranges
+
+        this.displaySettings[name].range = range;
+
+        var ranges = {};
+        _.each(_.keys(this.displaySettings), function(key){
+            if (this.displaySettings[key].range){
+                ranges[key] = this.displaySettings[key].range;
+            }
+        }, this);
+
+        Rally.data.PreferenceManager.update({
+            appID: this.appId,
+            settings: {
+                'rally-tech-services-ranges': Ext.JSON.encode(ranges)
+            },
+            scope: this,
+            success: function(updatedRecords, notUpdatedRecords) {
+                this.logger.log("Successfully saved preference 'rally-tech-services-ranges'", updatedRecords, notUpdatedRecords);
+            },
+            failure: function(){
+                this.logger.log('Failed to save ranges');
+            }
+        });
         this.fireEvent('rangechanged');
     },
     getTooltip: function(name){
@@ -986,9 +1013,9 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                         Ext.Array.each(records,function(artifact){
                             if (!skipZero || (skipZero && artifact.get('PlanEstimate') !== 0)){
-                                var plan_estimate = artifact.get('PlanEstimate') || 0;
+                                var plan_estimate = artifact.get('PlanEstimate');
 
-                                if ( plan_estimate > 0 ) {
+                                if ( !isNaN(plan_estimate)) {
                                     count_of_estimated_artifacts++;
                                 }
                             }
@@ -1141,20 +1168,12 @@ Ext.define("rally-iteration-health", {
             showDateForHalfAcceptanceRatio: this.getSetting('showDateForHalfAcceptanceRatio'),
             listeners: {
                 scope: this,
-                rangechanged: this._refreshView
+                rangechanged: this._refreshView,
+                ready: this._initApp
             }
         });
 
-        var project_oid = this.getContext().getProject().ObjectID;
-        Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]).then({
-            scope: this,
-            success: function(record_count){
-                this._initApp(record_count);
-            },
-            failure: function(msg){
-                Rally.ui.notify.Notifier.showError({message: msg});
-            }
-        });
+
     },
     _refreshView: function(){
         this.logger.log('_refreshView');
@@ -1163,17 +1182,30 @@ Ext.define("rally-iteration-health", {
         }
     },
     _initApp: function(child_project_count){
-        this.down('#criteria_box').removeAll();
-        this.logger.log('_initApp', child_project_count);
-        if (child_project_count == 0){
-            this._initForLeafProject();
-        } else {
-            this.down('#criteria_box').add({
-                xtype:'container',
-                html:'This app is designed for use at the team level.' +
-                '<br/>Change the context selector to a leaf team node.'
-            });
-        }
+
+        var project_oid = this.getContext().getProject().ObjectID;
+        Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]).then({
+            scope: this,
+            success: function(child_project_count){
+                this.down('#criteria_box').removeAll();
+
+                this.logger.log('_initApp', child_project_count);
+                if (child_project_count == 0){
+                    this._initForLeafProject();
+                } else {
+                    this.down('#criteria_box').add({
+                        xtype:'container',
+                        html:'This app is designed for use at the team level.' +
+                        '<br/>Change the context selector to a leaf team node.'
+                    });
+                }
+            },
+            failure: function(msg){
+                Rally.ui.notify.Notifier.showError({message: msg});
+            }
+        });
+
+
     },
     _initForLeafProject: function(){
         this.down('#criteria_box').add({
@@ -1501,7 +1533,7 @@ Ext.define("rally-iteration-health", {
 .ts_popover_description {
     background-color: white;
     padding: 3px;
-    width: 400px;
+    width: 600px;
 }
 
 .ts_popover_description h1 {

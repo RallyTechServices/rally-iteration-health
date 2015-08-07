@@ -166,24 +166,29 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         this.mixins.observable.constructor.call(this, config);
 
         this.addEvents(
-            'rangechanged'
+            'rangechanged',
+            'ready'
         );
 
-
         //Get settings and preferences here
-        //if (this.getAppId() && this.getSetting('useSavedRanges')){
-        //    Rally.technicalservices.WsapiToolbox.fetchPreferences(this.getAppId()).then({
-        //        scope: this,
-        //        success: function(prefs){
-        //            this.logger.log("preferences",prefs);
-        //            if ( prefs && prefs['rally-tech-services-ranges'] ) {
-        //                this.savedRanges = Ext.JSON.decode(prefs['rally-tech-services-ranges']);
-        //                this.logger.log("savedRanges", this.savedRanges);
-        //            }
-        //            this._definePageDisplay();
-        //        }
-        //    });
-        //} else {
+        if (this.appId){
+            Rally.technicalservices.WsapiToolbox.fetchPreferences(this.appId).then({
+                scope: this,
+                success: function(prefs){
+                    this.logger.log("preferences",prefs);
+                    if ( prefs && prefs['rally-tech-services-ranges'] ) {
+                        var savedRanges = Ext.JSON.decode(prefs['rally-tech-services-ranges']);
+                        _.each(savedRanges,function(value, key){
+                            this.displaySettings[key].range = value;
+                        }, this);
+                        this.logger.log("savedRanges", savedRanges);
+                        this.fireEvent('ready');
+                    }
+                }
+            });
+        } else {
+            this.fireEvent('ready');
+        }
 
     },
     getRenderer: function(field,v,m,r,r_idx, c_idx){
@@ -361,7 +366,29 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     },
     setRanges: function(name, range){
         this.logger.log('setRanges', name, range);
-        //TODO: save ranges
+
+        this.displaySettings[name].range = range;
+
+        var ranges = {};
+        _.each(_.keys(this.displaySettings), function(key){
+            if (this.displaySettings[key].range){
+                ranges[key] = this.displaySettings[key].range;
+            }
+        }, this);
+
+        Rally.data.PreferenceManager.update({
+            appID: this.appId,
+            settings: {
+                'rally-tech-services-ranges': Ext.JSON.encode(ranges)
+            },
+            scope: this,
+            success: function(updatedRecords, notUpdatedRecords) {
+                this.logger.log("Successfully saved preference 'rally-tech-services-ranges'", updatedRecords, notUpdatedRecords);
+            },
+            failure: function(){
+                this.logger.log('Failed to save ranges');
+            }
+        });
         this.fireEvent('rangechanged');
     },
     getTooltip: function(name){
