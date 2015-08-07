@@ -314,10 +314,17 @@ Ext.define("rally-iteration-health", {
     getSettingsFields: function() {
 
         var settings = [],
-            half_accepted_ratio_name = this.healthConfig.displaySettings.__halfAcceptedRatio.displayName,
-            task_churn_name = this.healthConfig.displaySettings.__taskChurn.displayName;
+            display_half_accepted = false,
+            half_accepted_ratio_name = '__halfAcceptedRatio',
+            task_churn_name = "Task Churn";
 
-        if (this.healthConfig.displaySettings.__halfAcceptedRatio.display){
+        if (this.healthConfig){
+            display_half_accepted= this.healthConfig.displaySettings.__halfAcceptedRatio.display;
+            half_accepted_ratio_name = this.healthConfig.displaySettings.__halfAcceptedRatio.displayName;
+            task_churn_name = this.healthConfig.displaySettings.__taskChurn.displayName;
+        }
+
+        if (display_half_accepted){
             settings.push({
                     name: 'showDateForHalfAcceptanceRatio',
                     xtype: 'rallycheckboxfield',

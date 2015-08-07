@@ -17,7 +17,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     red: '#ff9999',
     yellow: '#ffffcc',
     green: '#ccffcc',
-    grey: '#D0D0D0',
+    grey: '#e6e6e6',
     benchmarkGreen: 90,
     benchmarkField: '__ratioEstimated',
     defaultRange: { red: 0, yellow: 60, green: 90, direction: 'red,yellow,green' },
@@ -69,7 +69,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             displayName: 'Average Daily In-Progress'
         },
         __halfAcceptedRatio: {
-            display: true,
+            display: false,
             range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red'},
             displayName: '50% Accepted Point',
             tooltip: "<h1>Description</h1>" +
@@ -79,7 +79,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "iteration, for example, 25% would mean that 1/2 of the committed work was accepted before day 3." +
             "<h1>How it is calculated</h1>" +
             "Find the percentage of plan estimate points that are accepted at the end of every day of the sprint and determine " +
-            "what part of the sprint that number passes 50%.  If analysis type is set to �counts�, the calculation is based on " +
+            "what part of the sprint that number passes 50%.  If analysis type is set to counts, the calculation is based on " +
             "the count of the work items, not the plan estimate of the work items.  Should the percentage of points accepted " +
             "drop below 50%, the point at which 50% acceptance is achieved is reset, until 50% is once again achieved." +
             "<h1>Coaching Tip</h1>" +
@@ -198,11 +198,15 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     },
     renderers: {
         defaultRenderer: function(v,m,r){
+            if (!isNaN(v)){
+                m.style="text-align:center;";
+            }
             return v;
         },
-        shortDate: function(value) {
+        shortDate: function(value, m) {
             if (value && !isNaN(Date.parse(value))){
                 value = new Date(value);
+                m.style = "text-align:center;";
                 return Rally.util.DateTime.formatWithNoYearWithDefault(value);
             }
             return "";
@@ -225,7 +229,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 color = this.green;
             }
 
-            metaData.style = 'background-color:'+color;
+            metaData.style = 'text-align:center;background-color:'+color;
             return percent + "%";
         },
         __ratioInProgress: function(value,metaData,record) {
@@ -234,7 +238,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 color = this.renderers.getRangeColor(percent,record, ranges, this);
 
             if (color){
-                metaData.style = "background-color: " + color;
+                metaData.style = "text-align:center;background-color: " + color;
             }
             return percent + "%";
         },
@@ -258,7 +262,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
 
             color = this.renderers.getRangeColor(percent,record, ranges, this);
-            metaData.style = "background-color: " + color;
+            metaData.style = "text-align:center;background-color: " + color;
             return text;
         },
         getRangeColor: function(percent, record, ranges, config, check_grey){
@@ -298,7 +302,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             var color = this.renderers.getRangeColor(percent,record,ranges,this,true);
 
-            metaData.style = "background-color: " + color;
+            metaData.style = "text-align:center;background-color: " + color;
             return text;
         },
         __endAcceptanceRatio: function(value,metaData,record) {
@@ -312,7 +316,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             var color = this.renderers.getRangeColor(percent, record, ranges, this, true);
 
-            metaData.style = "background-color: " + color;
+            metaData.style = "text-align:center;background-color: " + color;
 
             return text;
         },
@@ -388,11 +392,16 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         return name;
     },
     updateSettings: function(settings){
-        this.hideTaskMovementColumn = settings.hideTaskMovementColumn;
-        if (settings.hideTaskMovementColumn){
+        if (settings.hideTaskMovementColumn === true || settings.hideTaskMovementColumn === "true"){
             this.displaySettings.__taskChurn.display = false;
+        } else {
+            this.displaySettings.__taskChurn.display = true;
         }
-        this.showDateForHalfAcceptanceRatio = settings.showDateForHalfAcceptanceRatio;
+        if (settings.showDateForHalfAcceptanceRatio === true || settings.showDateForHalfAcceptanceRatio === "true"){
+            this.showDateForHalfAcceptanceRatio = true;
+        } else {
+            this.showDateForHalfAcceptanceRatio = false;
+        }
     }
 });
 

@@ -1,69 +1,61 @@
 #Rally Iteration Health
 
-## Development Notes
+Measures health metrics for an iteration.   
 
-### First Load
+This app can only be used at the leaf project level, meaning that data will not be calculated if the currently scoped project has open children.  
 
-If you've just downloaded this from github and you want to do development, 
-you're going to need to have these installed:
+This app uses cumulative flow data for the selected project and iterations and can be used with any SaaS or On-Premise subscription that supports the 2.0 SDK.
 
- * node.js
- * grunt-cli
- * grunt-init
- 
-Since you're getting this from github, we assume you have the command line
-version of git also installed.  If not, go get git.
-
-If you have those three installed, just type this in the root directory here
-to get set up to develop:
-
-  npm install
-
-### Structure
-
-  * src/javascript:  All the JS files saved here will be compiled into the 
-  target html file
-  * src/style: All of the stylesheets saved here will be compiled into the 
-  target html file
-  * test/fast: Fast jasmine tests go here.  There should also be a helper 
-  file that is loaded first for creating mocks and doing other shortcuts
-  (fastHelper.js) **Tests should be in a file named <something>-spec.js**
-  * test/slow: Slow jasmine tests go here.  There should also be a helper
-  file that is loaded first for creating mocks and doing other shortcuts 
-  (slowHelper.js) **Tests should be in a file named <something>-spec.js**
-  * templates: This is where templates that are used to create the production
-  and debug html files live.  The advantage of using these templates is that
-  you can configure the behavior of the html around the JS.
-  * config.json: This file contains the configuration settings necessary to
-  create the debug and production html files.  Server is only used for debug,
-  name, className and sdk are used for both.
-  * package.json: This file lists the dependencies for grunt
-  * auth.json: This file should NOT be checked in.  Create this to run the
-  slow test specs.  It should look like:
-    {
-        "username":"you@company.com",
-        "password":"secret"
-    }
+Task Churn can be hidden via the App Settings.
   
-### Usage of the grunt file
-####Tasks
+##Metric Definitions:  
+
+### Scope Churn and Direction
+Churn is a measure of the change in the iteration's scope.
+
+Churn Direction (+/-) is an indicator of the general direction of scope change.  Churn is defined as a standard deviation, which is always zero or positive, so this added indicator provides an indication of whether scope tended to be added or removed
+
+####How it is calculated
+Churn is defined as the standard deviation of the total scheduled into the sprint divided by the average daily total.
+
+Churn Direction is determined by examining every day's change from the day before and adding or subtracting the delta to determine whether scope has been added more often than subtracted. (The first day of the iteration is excluded from this calculation.
+
+###Task Churn
+Indicates when tasks have been added or removed on the last day of the iteration.  If a significant percentage of tasks are removed, it could be an indicator that the team is moving committed work items to another iteration.
+
+####How it is calculated
+The number of estimated hours for the tasks scheduled in the iteration on the last day are subtracted from the total estimated hours of tasks scheduled on the next-to-last day, then divided by the next-to-last-day totals to create a percentage.  Note that this is calculated from the <b>estimates</b> of all the tasks, not the hours remaining to-do.
+
+### Days  
+The number of full days in the iteration (Excluding weekends)
+
+###Estimated Ratio
+Represents the ratio of work items (stories and defects) that have estimates.
+
+####How it is calculated
+Divide the number of work items (stories and defects) in the iteration that have a plan estimate that is not null by the total number of items in the iteration multiplied by 100. 
+Stories that have a PlanEstimate = 0 (not null) will be counted as estimated.   
+        
+####Coaching Tip
+If there is a very high percentage or stories without estimates, other measures will not be meaningful.  This is really only useful for the beginning of an iteration, and perhaps for an iteration in early flight, but not for an iteration that has ended.  The idea is to catch this early in an iteration so other charts/graphs etc are useful for teams.  A good practice is to have a ready backlog as and entrance criteria to an iteration planning session, a ready backlog means three things, sized, ranked, and stories are elaborated sufficiently with acceptance criteria to enable conversation and confirmation during planning.
+
+###End Acceptance Ratio
+Indicates whether teams met their commitment, assuming work items have not been removed from the iteration. 
+
+####How it is calculated
+Divide the plan estimates of the work items in the iteration that were accepted on the last day of the iteration by the total plan estimate of all work items in the iteration.  If analysis type is set to 'counts', the calculation is based on the number of work items, not the plan estimate of the work items.
+
+###In-Progress Ratio
+This is an indication of how much work is in progress (WIP).  It is the ratio of the average of the work items in the in-Progress state on a daily basis. 
+
+####How it is calculated
+Divide the plan estimate of all the work items in the 'in-progress' state by the total plan estimate of the work items in the iteration, divided by the number of days.  If the iteration is in-flight, we'll divide by the number of days so far.   If analysis type is set to counts, the calculation is based on the count of the work items, not the plan estimate of the work items.
+        
+####Coaching Tip
+A high percentage here would mean that there is a high degree of daily WIP on average.  Keeping WIP small, reduces context switching and helps team focus on the most important items to reach acceptance.
     
-##### grunt debug
+###End Completion Ratio
+Represents the ratio of work completed by iteration end.  A low percentage might imply that there is work planned into an iteration that was left in a schedule state lower than completed.
 
-Use grunt debug to create the debug html file.  You only need to run this when you have added new files to
-the src directories.
-
-##### grunt build
-
-Use grunt build to create the production html file.  We still have to copy the html file to a panel to test.
-
-##### grunt test-fast
-
-Use grunt test-fast to run the Jasmine tests in the fast directory.  Typically, the tests in the fast 
-directory are more pure unit tests and do not need to connect to Rally.
-
-##### grunt test-slow
-
-Use grunt test-slow to run the Jasmine tests in the slow directory.  Typically, the tests in the slow
-directory are more like integration tests in that they require connecting to Rally and interacting with
-data.
+####How it is calculated
+Divide the plan estimates of the work items in the iteration that are in a schedule state that is Completed or higher at the end of the last day of the iteration by the total plan estimate of all work items in the iteration. If analysis type is set to 'counts', the calculation is based on the count of the work items, not the plan estimate of the work items.
