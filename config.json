@@ -1,0 +1,7 @@
+{
+    "name": "Rally Iteration Health",
+    "className": "rally-iteration-health",
+    "server": "https://demo-services1.rallydev.com",
+    "sdk": "2.0",
+    "apiKey": "_PUT_APIKEY_HERE_"
+}

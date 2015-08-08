@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rally Iteration Health</title>
+    <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
+    <!--  Build Date: Sat Aug 08 2015 09:41:39 GMT-0600 (MDT) -->
+    
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Sat Aug 08 2015 09:41:39 GMT-0600 (MDT)";
+        var CHECKSUM = [%= checksum %];
+    </script>
+    
+    <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+            
+            
+               Rally.launchApp('rally-iteration-health', {
+                   name: 'Rally Iteration Health'
+               });
+        });
+    </script>
+    
+    <style type="text/css">
+
+.app {
+}
+.tsinfolink {
+    position:absolute;
+    right:0px;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    color: white;
+    background: #C0C0C0;
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 25px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.ts_popover_description {
+    background-color: white;
+    padding: 3px;
+    width: 600px;
+}
+
+.ts_popover_description h1 {
+    margin: 3px 0px;
+    font-size: 14px;
+}
+
+.icon-plus {
+    font-size: 14px;
+    color: #888;
+}
+.icon-minus {
+    font-size: 14px;
+    color: #888;
+}
+    </style>
+
+</head>
+<body></body>
+</html>
