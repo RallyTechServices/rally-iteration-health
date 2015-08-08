@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sat Aug 08 2015 10:03:00 GMT-0600 (MDT) -->
+    <!--  Build Date: Sat Aug 08 2015 10:50:48 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sat Aug 08 2015 10:03:00 GMT-0600 (MDT)";
-        var CHECKSUM = 73985114191;
+        var APP_BUILD_DATE = "Sat Aug 08 2015 10:50:48 GMT-0600 (MDT)";
+        var CHECKSUM = 74423327675;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -667,10 +667,13 @@ Ext.define('Rally.technicalservices.util.Health',{
         _.each(days, function(day){
             var day_total = Ext.Array.sum(_.values(health_hash[day])),
                 day_in_state = health_hash[day][state] || 0;
-
-            totals.push( day_in_state/day_total );
+            if (day_total > 0){
+                totals.push( day_in_state/day_total );
+            } else {
+                totals.push(0);
+            }
         });
-        return Ext.util.Format.number(Ext.Array.mean(totals),"0.00");
+            return Ext.util.Format.number(Ext.Array.mean(totals),"0.00");
     },
     getDayTotalsArray: function(health_hash){
         var day_totals = [];
@@ -988,7 +991,11 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             days = this.get('__days');
 
                         this.logger.log('totals',daily_totals, daily_task_estimate_totals, doneStates);
-                        this.set('__ratioInProgress',Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state));
+
+                        var avg_daily_in_progress = Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state);
+                        if (avg_daily_in_progress > 0){
+                            this.set('__ratioInProgress',avg_daily_in_progress);
+                        }
 
                         var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, doneStates, days);
                         this.set('__halfAcceptedRatio',half_accepted_ratio.Ratio);

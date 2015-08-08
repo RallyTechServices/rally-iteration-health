@@ -81,10 +81,13 @@ Ext.define('Rally.technicalservices.util.Health',{
         _.each(days, function(day){
             var day_total = Ext.Array.sum(_.values(health_hash[day])),
                 day_in_state = health_hash[day][state] || 0;
-
-            totals.push( day_in_state/day_total );
+            if (day_total > 0){
+                totals.push( day_in_state/day_total );
+            } else {
+                totals.push(0);
+            }
         });
-        return Ext.util.Format.number(Ext.Array.mean(totals),"0.00");
+            return Ext.util.Format.number(Ext.Array.mean(totals),"0.00");
     },
     getDayTotalsArray: function(health_hash){
         var day_totals = [];

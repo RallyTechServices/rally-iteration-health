@@ -52,6 +52,8 @@ This is an indication of how much work is in progress (WIP).  It is the ratio of
 
 ####How it is calculated
 Divide the plan estimate of all the work items in the 'in-progress' state by the total plan estimate of the work items in the iteration, divided by the number of days.  If the iteration is in-flight, we'll divide by the number of days so far.   If analysis type is set to counts, the calculation is based on the count of the work items, not the plan estimate of the work items.
+
+If there are no plan estimate totals for an item on one day, the in progress ratio is calculated as 0 for that day.  This means that if there are no work items in a sprint for the first 5 days of the sprint, the average of in-progress items will include those days where there were no items in the sprint.          
         
 ####Coaching Tip
 A high percentage here would mean that there is a high degree of daily WIP on average.  Keeping WIP small, reduces context switching and helps team focus on the most important items to reach acceptance.
