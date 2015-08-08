@@ -177,8 +177,8 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                             this.displaySettings[key].range = value;
                         }, this);
                         this.logger.log("savedRanges", savedRanges);
-                        this.fireEvent('ready');
                     }
+                    this.fireEvent('ready');
                 }
             });
         } else {

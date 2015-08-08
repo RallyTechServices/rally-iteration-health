@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Aug 07 2015 23:38:03 GMT-0600 (MDT) -->
+    <!--  Build Date: Sat Aug 08 2015 09:41:38 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Aug 07 2015 23:38:03 GMT-0600 (MDT)";
-        var CHECKSUM = 73396679550;
+        var APP_BUILD_DATE = "Sat Aug 08 2015 09:41:38 GMT-0600 (MDT)";
+        var CHECKSUM = 73486641387;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -355,8 +355,8 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                             this.displaySettings[key].range = value;
                         }, this);
                         this.logger.log("savedRanges", savedRanges);
-                        this.fireEvent('ready');
                     }
+                    this.fireEvent('ready');
                 }
             });
         } else {
@@ -964,7 +964,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                 if (usePoints === false){
                                     card_total = cf.get('CardCount') || 0;
                                 }
-                                this.logger.log('cardcount',card_state,card_total,card_date, ++counter);
+                                this.logger.log('cardcount',card_state,card_date, cf.get('CardCount'), cf.get('CardEstimateTotal'));
                                 if (!daily_totals[card_date]){
                                     daily_totals[card_date] = {};
                                 }
