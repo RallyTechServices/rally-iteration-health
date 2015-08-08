@@ -130,8 +130,9 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     _processCFD: function(records, usePoints, doneStates){
 
                         var daily_totals = {},
-                            daily_task_estimate_totals = {};
-
+                            daily_task_estimate_totals = {},
+                            counter = 0;
+                        this.logger.log('_processCFD', records.length, usePoints, doneStates,records);
                         Ext.Array.each(records, function(cf) {
                             var card_date = cf.get('CreationDate');
 
@@ -143,7 +144,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                 if (!usePoints){
                                     card_total = cf.get('CardCount') || 0;
                                 }
-
+                                this.logger.log('cardcount',card_state,card_total,card_date, ++counter);
                                 if (!daily_totals[card_date]){
                                     daily_totals[card_date] = {};
                                 }
@@ -166,6 +167,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             inprogress_state = "In-Progress",
                             days = this.get('__days');
 
+                        this.logger.log('totals',daily_totals, daily_task_estimate_totals, doneStates);
                         this.set('__ratioInProgress',Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state));
 
                         var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, doneStates, days);

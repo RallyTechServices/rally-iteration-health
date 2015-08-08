@@ -40,7 +40,8 @@ Ext.define('Rally.technicalservices.util.Health',{
     getChurn: function(health_hash){
         var totals = [],
             days = _.keys(health_hash);
-
+        var all_hash = Rally.technicalservices.util.Health.getAllHash(health_hash);
+        console.log('all hash',all_hash, health_hash);
         _.each(days, function(day){
             totals.push(Rally.technicalservices.util.Health.getDayTotal(health_hash, day));
         });
