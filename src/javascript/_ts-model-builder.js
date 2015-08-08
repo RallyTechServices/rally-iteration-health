@@ -95,7 +95,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             }
                             var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
                                 models: ['Defect', 'UserStory'],
-                                fetch: ['ObjectID','PlanEstimate','ScheduleState'],
+                                fetch: ['ObjectID','PlanEstimate','ScheduleState','FormattedID'],
                                 filters: filters
                             });
                             artifact_store.load({
@@ -212,10 +212,12 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                         Ext.Array.each(records,function(artifact){
                            var plan_estimate = artifact.get('PlanEstimate');
-                            if (plan_estimate && plan_estimate >= 0) {
+                            if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
                                 count_of_estimated_artifacts++;
+                            } else {
+                                this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.get('FormattedID'));
                             }
-                        });
+                        }, this);
                         this.logger.log('estimated ratio estimated: ', count_of_estimated_artifacts, ' total: ',  records.length);
                         if (records && records.length > 0){
                             this.set('__ratioEstimated',count_of_estimated_artifacts/records.length);
