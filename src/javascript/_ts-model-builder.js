@@ -168,7 +168,11 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             days = this.get('__days');
 
                         this.logger.log('totals',daily_totals, daily_task_estimate_totals, doneStates);
-                        this.set('__ratioInProgress',Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state));
+
+                        var avg_daily_in_progress = Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state);
+                        if (avg_daily_in_progress > 0){
+                            this.set('__ratioInProgress',avg_daily_in_progress);
+                        }
 
                         var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, doneStates, days);
                         this.set('__halfAcceptedRatio',half_accepted_ratio.Ratio);
