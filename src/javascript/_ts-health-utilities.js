@@ -40,8 +40,7 @@ Ext.define('Rally.technicalservices.util.Health',{
     getChurn: function(health_hash){
         var totals = [],
             days = _.keys(health_hash);
-        var all_hash = Rally.technicalservices.util.Health.getAllHash(health_hash);
-        console.log('all hash',all_hash, health_hash);
+
         _.each(days, function(day){
             totals.push(Rally.technicalservices.util.Health.getDayTotal(health_hash, day));
         });
@@ -49,7 +48,6 @@ Ext.define('Rally.technicalservices.util.Health',{
         var stdev = Rally.technicalservices.util.Health.getStandardDeviation(totals),
             dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00"),
             direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
-        console.log('churn',stdev,dev_ratio,direction);
         return dev_ratio * direction;
     },
     getDayTotal: function(hash, key){
@@ -128,7 +126,6 @@ Ext.define('Rally.technicalservices.util.Health',{
 
             var total = total_hash[day] || 0;
             var day_accepted = done_hash[day] || 0;
-            console.log('day total', total, day_accepted);
 
             if ( day_accepted/total >= 0.5 && day_index === -1 ) {
                 day_index = day_counter;
@@ -138,7 +135,6 @@ Ext.define('Rally.technicalservices.util.Health',{
                 day_index = -1;
                 day_accomplished = null;
             }
-            console.log('day index', day_index, day_accomplished, day);
         });
         var ratio = 2;
         if ( day_index > -1 ) {
@@ -166,8 +162,6 @@ Ext.define('Rally.technicalservices.util.Health',{
             last_total = Rally.technicalservices.util.Health.getDayTotal(health_hash,last_date),
             last_accepted = done_hash[last_date],
             last_completed =  health_hash[last_date][completed_state] || 0;
-
-            console.log('dt',done_hash, last_total, last_accepted, last_completed);
 
             var ratio = 2;
             if ( last_total > 0 ) {

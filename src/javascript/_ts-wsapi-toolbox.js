@@ -89,7 +89,6 @@ Ext.define('Rally.technicalservices.WsapiToolbox',{
             pageSize: 1
         }).load({
             callback: function(records, operation, success){
-                console.log('getCount callback',query_filters.toString(),operation);
                 if (success){
                     deferred.resolve(operation.resultSet.totalRecords);
                 } else {

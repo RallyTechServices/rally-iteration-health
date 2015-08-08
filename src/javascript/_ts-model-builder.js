@@ -141,7 +141,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                     card_state = cf.get('CardState'),
                                     card_task_estimate = cf.get('TaskEstimateTotal') || 0;
 
-                                if (!usePoints){
+                                if (usePoints === false){
                                     card_total = cf.get('CardCount') || 0;
                                 }
                                 this.logger.log('cardcount',card_state,card_total,card_date, ++counter);
