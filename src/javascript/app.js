@@ -26,7 +26,8 @@ Ext.define("rally-iteration-health", {
             listeners: {
                 scope: this,
                 rangechanged: this._refreshView,
-                ready: this._initApp
+                ready: this._initApp,
+                context: this.getContext()
             }
         });
         this.healthConfig.updateSettings(this.getSettings());

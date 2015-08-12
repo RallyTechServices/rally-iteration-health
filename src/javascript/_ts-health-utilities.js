@@ -48,7 +48,11 @@ Ext.define('Rally.technicalservices.util.Health',{
         var stdev = Rally.technicalservices.util.Health.getStandardDeviation(totals),
             dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00"),
             direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
-        return dev_ratio * direction;
+        var churn = dev_ratio * direction;
+        if (!isNaN(churn)){
+            return dev_ratio * direction;
+        }
+        return null;
     },
     getDayTotal: function(hash, key){
         if (hash[key]){
@@ -140,7 +144,8 @@ Ext.define('Rally.technicalservices.util.Health',{
             }
         });
         var ratio = 2;
-        if ( day_index > -1 ) {
+        console.log('getHalfAccepteanceRatio', day_accomplished, day_index, day_counter);
+         if ( day_index > -1 ) {
             if (num_days_in_iteration > -1 ) {
                 day_counter = num_days_in_iteration;
             }

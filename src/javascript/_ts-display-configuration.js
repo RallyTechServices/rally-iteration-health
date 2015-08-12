@@ -10,6 +10,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     appId: undefined,
     showDateForHalfAcceptanceRatio: false,
     skipZeroForEstimationRatio: false,
+    context: undefined,
 
     /**
      * Colors for Cell Renderers
@@ -69,7 +70,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             displayName: 'Average Daily In-Progress'
         },
         __halfAcceptedRatio: {
-            display: false,
+            display: true,
             range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red'},
             displayName: '50% Accepted Point',
             tooltip: "<h1>Description</h1>" +
@@ -204,10 +205,11 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return v;
         },
         shortDate: function(value, m) {
-            if (value && !isNaN(Date.parse(value))){
+
+             if (value && new Date(value) !== 'Invalid Date'){
                 value = new Date(value);
                 m.style = "text-align:center;";
-                return Rally.util.DateTime.formatWithNoYearWithDefault(value);
+                return Rally.util.DateTime.formatWithNoYearWithDefault(value, this.context);
             }
             return "";
         },
@@ -245,6 +247,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __halfAcceptedRatio: function(value,metaData,record) {
             var ranges = this.displaySettings.__halfAcceptedRatio.range;
             var color = this.green;
+            this.logger.log('__halfAcceptedRatio',this.showDateForHalfAcceptanceRatio, value, record,record.get('Name'),record.get('__halfAcceptedDate'));
 
             if ( value < 0 ) {
                 return " ";
@@ -255,7 +258,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             if (percent < 200) {
                 if (this.showDateForHalfAcceptanceRatio){
                     var date = record.get('__halfAcceptedDate');
-                    text = Ext.String.format('{1}% ({0})',this.renderers.shortDate(date), percent);
+                    text = Ext.String.format('{0}% ({1})', percent,this.renderers.shortDate(date, metaData));
                 } else {
                     text = Ext.String.format('{0}%',percent);
                 }
@@ -332,10 +335,15 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 icon_string = Ext.String.format('<div class= "control {0}" style:="display:inline;"></div>&nbsp;', icon);
             }
 
-            var percent = parseInt( 100 * Math.abs(value), 10 );
+            var percent = parseInt( 100 * Math.abs(value), 10 ),
+                text = ( percent < 200 ) ? (percent + "%") : "No Data" ;
+
+            if (percent == 0 || text == "No Data"){
+                icon_string = "";
+            }
 
             metaData.style = "background-color: " + color;
-            return Ext.String.format('<div style="text-align:center;background-color:{0};">{2}&nbsp;{1}%</div>',color,percent,icon_string);
+            return Ext.String.format('<div style="text-align:center;background-color:{0};">{2}&nbsp;{1}</div>',color,text,icon_string);
         },
         __taskChurn: function(value,metaData,record) {
             var text = "No data";
