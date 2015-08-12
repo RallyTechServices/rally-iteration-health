@@ -24,7 +24,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     defaultValue: 1
                 }, {
                     name: '__halfAcceptedDate',
-                    defaultValue: null
+                    defaultValue: ''
                 },{
                     name: '__endCompletionRatio',
                     defaultValue: -1
@@ -34,9 +34,6 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                 },{
                     name: '__endIncompletionRatio',
                     defaultValue:  -1
-                },{
-                    name: '__scopeChurn_PlanEstimate',
-                    defaultValue: -2
                 },{
                     name: '__taskChurn',
                     defaultValue: -2
@@ -93,6 +90,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                     value: 0
                                 });
                             }
+
                             var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
                                 models: ['Defect', 'UserStory'],
                                 fetch: ['ObjectID','PlanEstimate','ScheduleState','FormattedID'],
@@ -175,6 +173,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
 
                         var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, doneStates, days);
+                        this.logger.log('__halfAcceptedRatio', half_accepted_ratio.Ratio, half_accepted_ratio.ratioDate);
                         this.set('__halfAcceptedRatio',half_accepted_ratio.Ratio);
                         this.set('__halfAcceptedDate',half_accepted_ratio.ratioDate);
 
@@ -184,9 +183,13 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         this.set('__endCompletionRatio', incompletion_stats.CompletionRatio);
                         this.set('__endIncompletionRatio', incompletion_stats.IncompletionRatio);
 
-                        this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_totals));
+                        var churn = Rally.technicalservices.util.Health.getChurn(daily_totals);
+                        if (churn){
+                            this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_totals));
+                        }
 
                         var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
+                        this.logger.log('__taskChurn', task_churn);
                         if (task_churn){
                             this.set('__taskChurn',task_churn);
                         }

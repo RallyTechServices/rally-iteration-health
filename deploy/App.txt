@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sat Aug 08 2015 10:50:48 GMT-0600 (MDT) -->
+    <!--  Build Date: Wed Aug 12 2015 07:55:32 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sat Aug 08 2015 10:50:48 GMT-0600 (MDT)";
-        var CHECKSUM = 74423327675;
+        var APP_BUILD_DATE = "Wed Aug 12 2015 07:55:32 GMT-0600 (MDT)";
+        var CHECKSUM = 76661195453;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -188,6 +188,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     appId: undefined,
     showDateForHalfAcceptanceRatio: false,
     skipZeroForEstimationRatio: false,
+    context: undefined,
 
     /**
      * Colors for Cell Renderers
@@ -247,7 +248,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             displayName: 'Average Daily In-Progress'
         },
         __halfAcceptedRatio: {
-            display: false,
+            display: true,
             range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red'},
             displayName: '50% Accepted Point',
             tooltip: "<h1>Description</h1>" +
@@ -382,10 +383,11 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return v;
         },
         shortDate: function(value, m) {
-            if (value && !isNaN(Date.parse(value))){
+
+             if (value && new Date(value) !== 'Invalid Date'){
                 value = new Date(value);
                 m.style = "text-align:center;";
-                return Rally.util.DateTime.formatWithNoYearWithDefault(value);
+                return Rally.util.DateTime.formatWithNoYearWithDefault(value, this.context);
             }
             return "";
         },
@@ -423,6 +425,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __halfAcceptedRatio: function(value,metaData,record) {
             var ranges = this.displaySettings.__halfAcceptedRatio.range;
             var color = this.green;
+            this.logger.log('__halfAcceptedRatio',this.showDateForHalfAcceptanceRatio, value, record,record.get('Name'),record.get('__halfAcceptedDate'));
 
             if ( value < 0 ) {
                 return " ";
@@ -433,7 +436,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             if (percent < 200) {
                 if (this.showDateForHalfAcceptanceRatio){
                     var date = record.get('__halfAcceptedDate');
-                    text = Ext.String.format('{1}% ({0})',this.renderers.shortDate(date), percent);
+                    text = Ext.String.format('{0}% ({1})', percent,this.renderers.shortDate(date, metaData));
                 } else {
                     text = Ext.String.format('{0}%',percent);
                 }
@@ -510,10 +513,15 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 icon_string = Ext.String.format('<div class= "control {0}" style:="display:inline;"></div>&nbsp;', icon);
             }
 
-            var percent = parseInt( 100 * Math.abs(value), 10 );
+            var percent = parseInt( 100 * Math.abs(value), 10 ),
+                text = ( percent < 200 ) ? (percent + "%") : "No Data" ;
+
+            if (percent == 0 || text == "No Data"){
+                icon_string = "";
+            }
 
             metaData.style = "background-color: " + color;
-            return Ext.String.format('<div style="text-align:center;background-color:{0};">{2}&nbsp;{1}%</div>',color,percent,icon_string);
+            return Ext.String.format('<div style="text-align:center;background-color:{0};">{2}&nbsp;{1}</div>',color,text,icon_string);
         },
         __taskChurn: function(value,metaData,record) {
             var text = "No data";
@@ -634,7 +642,11 @@ Ext.define('Rally.technicalservices.util.Health',{
         var stdev = Rally.technicalservices.util.Health.getStandardDeviation(totals),
             dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00"),
             direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
-        return dev_ratio * direction;
+        var churn = dev_ratio * direction;
+        if (!isNaN(churn)){
+            return dev_ratio * direction;
+        }
+        return null;
     },
     getDayTotal: function(hash, key){
         if (hash[key]){
@@ -726,7 +738,8 @@ Ext.define('Rally.technicalservices.util.Health',{
             }
         });
         var ratio = 2;
-        if ( day_index > -1 ) {
+        console.log('getHalfAccepteanceRatio', day_accomplished, day_index, day_counter);
+         if ( day_index > -1 ) {
             if (num_days_in_iteration > -1 ) {
                 day_counter = num_days_in_iteration;
             }
@@ -847,7 +860,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     defaultValue: 1
                 }, {
                     name: '__halfAcceptedDate',
-                    defaultValue: null
+                    defaultValue: ''
                 },{
                     name: '__endCompletionRatio',
                     defaultValue: -1
@@ -857,9 +870,6 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                 },{
                     name: '__endIncompletionRatio',
                     defaultValue:  -1
-                },{
-                    name: '__scopeChurn_PlanEstimate',
-                    defaultValue: -2
                 },{
                     name: '__taskChurn',
                     defaultValue: -2
@@ -916,6 +926,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                     value: 0
                                 });
                             }
+
                             var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
                                 models: ['Defect', 'UserStory'],
                                 fetch: ['ObjectID','PlanEstimate','ScheduleState','FormattedID'],
@@ -998,6 +1009,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
 
                         var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, doneStates, days);
+                        this.logger.log('__halfAcceptedRatio', half_accepted_ratio.Ratio, half_accepted_ratio.ratioDate);
                         this.set('__halfAcceptedRatio',half_accepted_ratio.Ratio);
                         this.set('__halfAcceptedDate',half_accepted_ratio.ratioDate);
 
@@ -1007,9 +1019,13 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         this.set('__endCompletionRatio', incompletion_stats.CompletionRatio);
                         this.set('__endIncompletionRatio', incompletion_stats.IncompletionRatio);
 
-                        this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_totals));
+                        var churn = Rally.technicalservices.util.Health.getChurn(daily_totals);
+                        if (churn){
+                            this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_totals));
+                        }
 
                         var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
+                        this.logger.log('__taskChurn', task_churn);
                         if (task_churn){
                             this.set('__taskChurn',task_churn);
                         }
@@ -1197,7 +1213,8 @@ Ext.define("rally-iteration-health", {
             listeners: {
                 scope: this,
                 rangechanged: this._refreshView,
-                ready: this._initApp
+                ready: this._initApp,
+                context: this.getContext()
             }
         });
         this.healthConfig.updateSettings(this.getSettings());
