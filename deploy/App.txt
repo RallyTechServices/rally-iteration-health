@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Aug 12 2015 07:55:32 GMT-0600 (MDT) -->
+    <!--  Build Date: Tue Sep 01 2015 17:44:15 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Aug 12 2015 07:55:32 GMT-0600 (MDT)";
-        var CHECKSUM = 76661195453;
+        var APP_BUILD_DATE = "Tue Sep 01 2015 17:44:15 GMT-0600 (MDT)";
+        var CHECKSUM = 81889377357;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -378,7 +378,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     renderers: {
         defaultRenderer: function(v,m,r){
             if (!isNaN(v)){
-                m.style="text-align:center;";
+                m.style="text-align:right;";
             }
             return v;
         },
@@ -386,7 +386,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
              if (value && new Date(value) !== 'Invalid Date'){
                 value = new Date(value);
-                m.style = "text-align:center;";
+                m.style = "text-align:right;";
                 return Rally.util.DateTime.formatWithNoYearWithDefault(value, this.context);
             }
             return "";
@@ -395,8 +395,10 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             if (!this.usePoints){
                 return "N/A";
             }
-            if ( value < 0 ) {
-                return " ";
+
+            if ( value < 0 || value > 1) {
+                metaData.style = 'text-align:right;background-color:' + this.grey;
+                return "No Data";
             }
             var percent = parseInt( 100 * value, 10 );
             var ranges = this.displaySettings.__ratioEstimated.range || this.defaultRange;
@@ -409,16 +411,22 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 color = this.green;
             }
 
-            metaData.style = 'text-align:center;background-color:'+color;
+            metaData.style = 'text-align:right;background-color:'+color;
             return percent + "%";
         },
         __ratioInProgress: function(value,metaData,record) {
+            if (value < 0){
+                metaData.style = "text-align:right;background-color: " + this.grey;
+                return "No Data";
+            }
+
+
             var percent = parseInt( 100 * value, 10),
                 ranges = this.displaySettings.__ratioInProgress.range,
-                color = this.renderers.getRangeColor(percent,record, ranges, this);
+                color = this.renderers.getRangeColor(percent,record, ranges, this, true);
 
             if (color){
-                metaData.style = "text-align:center;background-color: " + color;
+                metaData.style = "text-align:right;background-color: " + color;
             }
             return percent + "%";
         },
@@ -428,7 +436,8 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             this.logger.log('__halfAcceptedRatio',this.showDateForHalfAcceptanceRatio, value, record,record.get('Name'),record.get('__halfAcceptedDate'));
 
             if ( value < 0 ) {
-                return " ";
+                metaData.style = "text-align:right;background-color: " + this.grey;
+                return "No Data";
             }
             var percent = parseInt( 100 * value, 10),
                 text = "Never";
@@ -436,14 +445,15 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             if (percent < 200) {
                 if (this.showDateForHalfAcceptanceRatio){
                     var date = record.get('__halfAcceptedDate');
-                    text = Ext.String.format('{0}% ({1})', percent,this.renderers.shortDate(date, metaData));
+                    if (!isNaN(Date.parse(date))){
+                        text = Ext.String.format('{0}% ({1})', percent,this.renderers.shortDate(date, metaData));
+                    }
                 } else {
                     text = Ext.String.format('{0}%',percent);
                 }
             }
-
-            color = this.renderers.getRangeColor(percent,record, ranges, this);
-            metaData.style = "text-align:center;background-color: " + color;
+            color = this.renderers.getRangeColor(percent,record, ranges, this, true);
+            metaData.style = "text-align:right;background-color: " + color;
             return text;
         },
         getRangeColor: function(percent, record, ranges, config, check_grey){
@@ -461,10 +471,6 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 }
             });
 
-            if ( percent == 200 ) {
-                color_code = "white";
-            }
-
             return config[color_code];
 
         },
@@ -473,8 +479,10 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return (check_percent < config.benchmarkGreen && config.usePoints);
         },
         __endCompletionRatio: function(value,metaData,record) {
+            this.logger.log('__endCompletionRatio',value);
             if ( value < 0 ) {
-                return " ";
+                metaData.style = "text-align:right;background-color: " + this.grey;
+                return "No Data";
             }
             var ranges = this.displaySettings.__endCompletionRatio.range,
                 percent = parseInt( 100 * value, 10),
@@ -483,12 +491,15 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             var color = this.renderers.getRangeColor(percent,record,ranges,this,true);
 
-            metaData.style = "text-align:center;background-color: " + color;
+            metaData.style = "text-align:right;background-color: " + color;
             return text;
         },
         __endAcceptanceRatio: function(value,metaData,record) {
+            this.logger.log('__endAcceptanceRatio',value);
+
             if ( value < 0 ) {
-                return " ";
+                metaData.style = "text-align:right;background-color: " + this.grey;
+                return "No Data";
             }
             var percent = parseInt( 100 * value, 10 );
             var text = ( percent == 200 ) ? "No Data" : (percent + "%");
@@ -497,7 +508,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             var color = this.renderers.getRangeColor(percent, record, ranges, this, true);
 
-            metaData.style = "text-align:center;background-color: " + color;
+            metaData.style = "text-align:right;background-color: " + color;
 
             return text;
         },
@@ -510,7 +521,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             if (value != 0){
                 direction = value/Math.abs(value);
                 var icon = direction < 0 ? "icon-minus" : "icon-plus" ; //"<img src='/slm/mashup/1.11/images/plus.gif' title='up'>";
-                icon_string = Ext.String.format('<div class= "control {0}" style:="display:inline;"></div>&nbsp;', icon);
+                icon_string = Ext.String.format('<div class= "control {0}" style:="display:inline;"></div>', icon);
             }
 
             var percent = parseInt( 100 * Math.abs(value), 10 ),
@@ -521,18 +532,32 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
 
             metaData.style = "background-color: " + color;
-            return Ext.String.format('<div style="text-align:center;background-color:{0};">{2}&nbsp;{1}</div>',color,text,icon_string);
+
+            if (text == "No Data"){
+                return Ext.String.format('<div style="display:inline;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
+            }
+            return Ext.String.format('<div style="display:inline;width:35px;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
         },
         __taskChurn: function(value,metaData,record) {
-            var text = "No data";
+            var text = "No Data",
+                direction = 0,
+                icon_string = "";
             var color = this.renderers.shouldBeGrey(this,record) ? this.grey : "white";
-
-            if ( value >= 0 ) {
-                var percent = parseInt( 100 * value, 10 );
-                text = percent + "%";
-            }
             metaData.style = "background-color: " + color;
-            return "<div style='text-align:center;background-color:" + color + ";'>" + text + "</div>";
+
+            if ( value != -2) {
+                var percent = parseInt( 100 * Math.abs(value), 10 );
+                text = percent + "%";
+                if (value != 0){
+                    direction = value/Math.abs(value);
+                    var icon = direction < 0 ? "icon-minus" : "icon-plus" ; //"<img src='/slm/mashup/1.11/images/plus.gif' title='up'>";
+                    icon_string = Ext.String.format('<div class= "control {0}" style:="display:inline;"></div>', icon);
+                }
+            } else {
+                text = "No data";
+                return Ext.String.format('<div style="display:inline;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
+            }
+            return Ext.String.format('<div style="display:inline;width:35px;text-align:right;float:right;background-color:{0};">{1}</div>{2}' ,color, text, icon_string);
         }
 
     },
@@ -660,17 +685,17 @@ Ext.define('Rally.technicalservices.util.Health',{
         var last_day_value = null,
             days = _.keys(health_hash);
 
-        _.each(days, function(day){
-            if ( last_day_value ) {
+         _.each(days, function(day){
+            if ( last_day_value != null ) {
                 previous_value = last_day_value;
             }
             last_day_value = Rally.technicalservices.util.Health.getDayTotal(health_hash, day);
         });
 
-        if ( last_day_value && previous_value && previous_value > 0 ) {
-            return Ext.util.Format.number(Math.abs(( previous_value - last_day_value )/previous_value),"0.00");
+        if (last_day_value == null || previous_value == null || (last_day_value == 0 && previous_value == 0)){
+            return null;
         }
-        return null;
+        return Ext.util.Format.number(( last_day_value - previous_value)/previous_value,"0.00");
     },
     getAverageInState:function(health_hash, state){
         var totals = [],
@@ -685,7 +710,8 @@ Ext.define('Rally.technicalservices.util.Health',{
                 totals.push(0);
             }
         });
-            return Ext.util.Format.number(Ext.Array.mean(totals),"0.00");
+
+        return Ext.util.Format.number(Ext.Array.mean(totals),"0.00");
     },
     getDayTotalsArray: function(health_hash){
         var day_totals = [];
@@ -738,7 +764,6 @@ Ext.define('Rally.technicalservices.util.Health',{
             }
         });
         var ratio = 2;
-        console.log('getHalfAccepteanceRatio', day_accomplished, day_index, day_counter);
          if ( day_index > -1 ) {
             if (num_days_in_iteration > -1 ) {
                 day_counter = num_days_in_iteration;
@@ -846,7 +871,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                 var default_fields = [{
                     name: '__ratioEstimated',
-                    defaultValue: 0
+                    defaultValue: -1
                 },{
                     name: '__days',
                     convert: function(value, record){
@@ -854,10 +879,10 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     }
                 },{
                     name: '__ratioInProgress',
-                    defaultValue: 0
+                    defaultValue: -1
                 },{
                     name: '__halfAcceptedRatio',
-                    defaultValue: 1
+                    defaultValue: -1
                 }, {
                     name: '__halfAcceptedDate',
                     defaultValue: ''
@@ -866,7 +891,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     defaultValue: -1
                 },{
                     name: '__endAcceptanceRatio',
-                    defaultValue: 2
+                    defaultValue: -1 //2
                 },{
                     name: '__endIncompletionRatio',
                     defaultValue:  -1
@@ -883,7 +908,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
                     calculate: function(usePoints, skipZeroForEstimation, doneStates) {
-
+                        this.logger.log('calculate', this.get('Name'));
                         var iteration_oid = this.get('ObjectID');
 
                         if (this.get('__cfdRecords')){
@@ -903,10 +928,12 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             store.load({
                                 scope: this,
                                 callback: function(records, operation, success){
-                                    this.logger.log('Iteration CFD callback', success, operation, records, records.length);
+                                    this.logger.log('Iteration CFD callback', success, this.get('Name'), operation, records, records.length);
                                     if (success){
-                                        this.set('__cfdRecords',records);
-                                        this._processCFD(records, usePoints, doneStates);
+                                        if (records && records.length > 0){
+                                            this.set('__cfdRecords',records);
+                                            this._processCFD(records, usePoints, doneStates);
+                                        }
                                     } else {
                                         this.logger.log('Error loading CFD records for Iteration',operation);
                                         this._setError();
@@ -939,7 +966,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                     if (success){
                                         this._setArtifacts(records);
                                     } else {
-                                        this.set('__estimationRatio', 'Error');
+                                        this.set('__ratioEstimated', 'Error');
                                     }
                                 }
                             });
@@ -1001,15 +1028,15 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             inprogress_state = "In-Progress",
                             days = this.get('__days');
 
-                        this.logger.log('totals',daily_totals, daily_task_estimate_totals, doneStates);
+                        this.logger.log('totals',this.get('Name'),daily_totals, daily_task_estimate_totals, doneStates);
 
                         var avg_daily_in_progress = Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state);
+                        this.logger.log('avg_daily_inprogress',this.get('Name'), avg_daily_in_progress)
                         if (avg_daily_in_progress > 0){
                             this.set('__ratioInProgress',avg_daily_in_progress);
                         }
 
                         var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, doneStates, days);
-                        this.logger.log('__halfAcceptedRatio', half_accepted_ratio.Ratio, half_accepted_ratio.ratioDate);
                         this.set('__halfAcceptedRatio',half_accepted_ratio.Ratio);
                         this.set('__halfAcceptedDate',half_accepted_ratio.ratioDate);
 
@@ -1025,8 +1052,8 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
 
                         var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
-                        this.logger.log('__taskChurn', task_churn);
-                        if (task_churn){
+                        this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
+                        if (!isNaN(task_churn)){
                             this.set('__taskChurn',task_churn);
                         }
 
@@ -1052,6 +1079,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     },
                     _setArtifacts: function(records){
                        var count_of_estimated_artifacts = 0;
+                        this.logger.log('_setArtifacts', records);
 
                         Ext.Array.each(records,function(artifact){
                            var plan_estimate = artifact.get('PlanEstimate');
@@ -1197,7 +1225,7 @@ Ext.define("rally-iteration-health", {
             useSavedRanges: false
         }
     },
-    defaultNumIterations: 3,
+    defaultNumIterations: 20,
     items: [
         {xtype:'container',itemId:'settings_box'},
         {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}},
@@ -1340,6 +1368,7 @@ Ext.define("rally-iteration-health", {
                             if (records.length > 0) {
                                 this._updateDisplay();
                             } else {
+                                this.down('#display_box').removeAll();
                                 this.down('#display_box').add({
                                     xtype:'container',
                                     html:'0 iterations found for the selected scope.'
@@ -1368,7 +1397,8 @@ Ext.define("rally-iteration-health", {
                 var cfg = {
                     dataIndex: key,
                     text: col.displayName || key,
-                    scope: config
+                    scope: config,
+                    editRenderer: false
                 };
                 if (col.range){
                    cfg.listeners = {
@@ -1606,11 +1636,15 @@ Ext.define("rally-iteration-health", {
 .icon-plus {
     font-size: 14px;
     color: #888;
+    float: right;
 }
 .icon-minus {
     font-size: 14px;
     color: #888;
+    float: right;
 }
+
+
     </style>
 
 </head>

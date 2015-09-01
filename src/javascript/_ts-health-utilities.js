@@ -66,17 +66,17 @@ Ext.define('Rally.technicalservices.util.Health',{
         var last_day_value = null,
             days = _.keys(health_hash);
 
-        _.each(days, function(day){
-            if ( last_day_value ) {
+         _.each(days, function(day){
+            if ( last_day_value != null ) {
                 previous_value = last_day_value;
             }
             last_day_value = Rally.technicalservices.util.Health.getDayTotal(health_hash, day);
         });
 
-        if ( last_day_value && previous_value && previous_value > 0 ) {
-            return Ext.util.Format.number(Math.abs(( previous_value - last_day_value )/previous_value),"0.00");
+        if (last_day_value == null || previous_value == null || (last_day_value == 0 && previous_value == 0)){
+            return null;
         }
-        return null;
+        return Ext.util.Format.number(( last_day_value - previous_value)/previous_value,"0.00");
     },
     getAverageInState:function(health_hash, state){
         var totals = [],
@@ -91,7 +91,8 @@ Ext.define('Rally.technicalservices.util.Health',{
                 totals.push(0);
             }
         });
-            return Ext.util.Format.number(Ext.Array.mean(totals),"0.00");
+
+        return Ext.util.Format.number(Ext.Array.mean(totals),"0.00");
     },
     getDayTotalsArray: function(health_hash){
         var day_totals = [];
@@ -144,7 +145,6 @@ Ext.define('Rally.technicalservices.util.Health',{
             }
         });
         var ratio = 2;
-        console.log('getHalfAccepteanceRatio', day_accomplished, day_index, day_counter);
          if ( day_index > -1 ) {
             if (num_days_in_iteration > -1 ) {
                 day_counter = num_days_in_iteration;
