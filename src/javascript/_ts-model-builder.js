@@ -10,7 +10,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                 var default_fields = [{
                     name: '__ratioEstimated',
-                    defaultValue: 0
+                    defaultValue: -1
                 },{
                     name: '__days',
                     convert: function(value, record){
@@ -18,10 +18,10 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     }
                 },{
                     name: '__ratioInProgress',
-                    defaultValue: 0
+                    defaultValue: -1
                 },{
                     name: '__halfAcceptedRatio',
-                    defaultValue: 1
+                    defaultValue: -1
                 }, {
                     name: '__halfAcceptedDate',
                     defaultValue: ''
@@ -30,7 +30,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     defaultValue: -1
                 },{
                     name: '__endAcceptanceRatio',
-                    defaultValue: 2
+                    defaultValue: -1 //2
                 },{
                     name: '__endIncompletionRatio',
                     defaultValue:  -1
@@ -47,7 +47,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
                     calculate: function(usePoints, skipZeroForEstimation, doneStates) {
-
+                        this.logger.log('calculate', this.get('Name'));
                         var iteration_oid = this.get('ObjectID');
 
                         if (this.get('__cfdRecords')){
@@ -67,10 +67,12 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             store.load({
                                 scope: this,
                                 callback: function(records, operation, success){
-                                    this.logger.log('Iteration CFD callback', success, operation, records, records.length);
+                                    this.logger.log('Iteration CFD callback', success, this.get('Name'), operation, records, records.length);
                                     if (success){
-                                        this.set('__cfdRecords',records);
-                                        this._processCFD(records, usePoints, doneStates);
+                                        if (records && records.length > 0){
+                                            this.set('__cfdRecords',records);
+                                            this._processCFD(records, usePoints, doneStates);
+                                        }
                                     } else {
                                         this.logger.log('Error loading CFD records for Iteration',operation);
                                         this._setError();
@@ -103,7 +105,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                     if (success){
                                         this._setArtifacts(records);
                                     } else {
-                                        this.set('__estimationRatio', 'Error');
+                                        this.set('__ratioEstimated', 'Error');
                                     }
                                 }
                             });
@@ -165,15 +167,15 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             inprogress_state = "In-Progress",
                             days = this.get('__days');
 
-                        this.logger.log('totals',daily_totals, daily_task_estimate_totals, doneStates);
+                        this.logger.log('totals',this.get('Name'),daily_totals, daily_task_estimate_totals, doneStates);
 
                         var avg_daily_in_progress = Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state);
+                        this.logger.log('avg_daily_inprogress',this.get('Name'), avg_daily_in_progress)
                         if (avg_daily_in_progress > 0){
                             this.set('__ratioInProgress',avg_daily_in_progress);
                         }
 
                         var half_accepted_ratio = Rally.technicalservices.util.Health.getHalfAcceptanceRatio(daily_totals, doneStates, days);
-                        this.logger.log('__halfAcceptedRatio', half_accepted_ratio.Ratio, half_accepted_ratio.ratioDate);
                         this.set('__halfAcceptedRatio',half_accepted_ratio.Ratio);
                         this.set('__halfAcceptedDate',half_accepted_ratio.ratioDate);
 
@@ -189,8 +191,8 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
 
                         var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
-                        this.logger.log('__taskChurn', task_churn);
-                        if (task_churn){
+                        this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
+                        if (!isNaN(task_churn)){
                             this.set('__taskChurn',task_churn);
                         }
 
@@ -216,6 +218,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     },
                     _setArtifacts: function(records){
                        var count_of_estimated_artifacts = 0;
+                        this.logger.log('_setArtifacts', records);
 
                         Ext.Array.each(records,function(artifact){
                            var plan_estimate = artifact.get('PlanEstimate');

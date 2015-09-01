@@ -10,7 +10,7 @@ Ext.define("rally-iteration-health", {
             useSavedRanges: false
         }
     },
-    defaultNumIterations: 3,
+    defaultNumIterations: 20,
     items: [
         {xtype:'container',itemId:'settings_box'},
         {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}},
@@ -153,6 +153,7 @@ Ext.define("rally-iteration-health", {
                             if (records.length > 0) {
                                 this._updateDisplay();
                             } else {
+                                this.down('#display_box').removeAll();
                                 this.down('#display_box').add({
                                     xtype:'container',
                                     html:'0 iterations found for the selected scope.'
@@ -181,7 +182,8 @@ Ext.define("rally-iteration-health", {
                 var cfg = {
                     dataIndex: key,
                     text: col.displayName || key,
-                    scope: config
+                    scope: config,
+                    editRenderer: false
                 };
                 if (col.range){
                    cfg.listeners = {

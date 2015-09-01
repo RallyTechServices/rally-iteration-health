@@ -30,8 +30,11 @@
 .icon-plus {
     font-size: 14px;
     color: #888;
+    float: right;
 }
 .icon-minus {
     font-size: 14px;
     color: #888;
+    float: right;
 }
+
