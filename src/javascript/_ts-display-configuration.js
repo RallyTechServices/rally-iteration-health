@@ -367,6 +367,12 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             var color = this.renderers.shouldBeGrey(this,record) ? this.grey : "white";
             metaData.style = "background-color: " + color;
 
+            if (value == Infinity){
+                text = "Infinity";
+                return Ext.String.format('<div style="display:inline;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
+            }
+
+
             if ( value != -2) {
                 var percent = parseInt( 100 * Math.abs(value), 10 );
                 text = percent + "%";
