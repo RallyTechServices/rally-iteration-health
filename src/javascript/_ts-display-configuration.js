@@ -219,7 +219,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
 
             if ( value < 0 || value > 1) {
-                metaData.style = 'text-align:right;background-color:' + this.grey;
+                metaData.style = 'padding-right:7px;text-align:right;background-color:' + this.grey;
                 return "No Data";
             }
             var percent = parseInt( 100 * value, 10 );
@@ -233,7 +233,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 color = this.green;
             }
 
-            metaData.style = 'text-align:right;background-color:'+color;
+            metaData.style = 'padding-right:7px;text-align:right;background-color:'+color;
             return percent + "%";
         },
         __ratioInProgress: function(value,metaData,record) {
@@ -248,7 +248,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 color = this.renderers.getRangeColor(percent,record, ranges, this, true);
 
             if (color){
-                metaData.style = "text-align:right;background-color: " + color;
+                metaData.style = "padding-right:7px;text-align:right;background-color: " + color;
             }
             return percent + "%";
         },
@@ -258,7 +258,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             this.logger.log('__halfAcceptedRatio',this.showDateForHalfAcceptanceRatio, value, record,record.get('Name'),record.get('__halfAcceptedDate'));
 
             if ( value < 0 ) {
-                metaData.style = "text-align:right;background-color: " + this.grey;
+                metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
                 return "No Data";
             }
             var percent = parseInt( 100 * value, 10),
@@ -275,7 +275,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 }
             }
             color = this.renderers.getRangeColor(percent,record, ranges, this, true);
-            metaData.style = "text-align:right;background-color: " + color;
+            metaData.style = "padding-right:7px;text-align:right;background-color: " + color;
             return text;
         },
         getRangeColor: function(percent, record, ranges, config, check_grey){
@@ -303,7 +303,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __endCompletionRatio: function(value,metaData,record) {
             this.logger.log('__endCompletionRatio',value);
             if ( value < 0 ) {
-                metaData.style = "text-align:right;background-color: " + this.grey;
+                metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
                 return "No Data";
             }
             var ranges = this.displaySettings.__endCompletionRatio.range,
@@ -320,7 +320,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             this.logger.log('__endAcceptanceRatio',value);
 
             if ( value < 0 ) {
-                metaData.style = "text-align:right;background-color: " + this.grey;
+                metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
                 return "No Data";
             }
             var percent = parseInt( 100 * value, 10 );
@@ -330,7 +330,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             var color = this.renderers.getRangeColor(percent, record, ranges, this, true);
 
-            metaData.style = "text-align:right;background-color: " + color;
+            metaData.style = "padding-right:7px;text-align:right;background-color: " + color;
 
             return text;
         },
@@ -353,7 +353,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 icon_string = "";
             }
 
-            metaData.style = "background-color: " + color;
+            metaData.style = "padding-right:7px;background-color: " + color;
 
             if (text == "No Data"){
                 return Ext.String.format('<div style="display:inline;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
@@ -365,7 +365,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 direction = 0,
                 icon_string = "";
             var color = this.renderers.shouldBeGrey(this,record) ? this.grey : "white";
-            metaData.style = "background-color: " + color;
+            metaData.style = "padding-right:7px;background-color: " + color;
 
             if (value == Infinity){
                 text = "Infinity";
