@@ -22,7 +22,7 @@ Churn is defined as the standard deviation of the total scheduled into the sprin
 
 Churn Direction is determined by examining every day's change from the day before and adding or subtracting the delta to determine whether scope has been added more often than subtracted. (The first day of the iteration is excluded from this calculation.
 
-###Task Churn
+###Percentage of Task Removal at Iteration End
 Indicates when tasks have been added or removed on the last day of the iteration.  If a significant percentage of tasks are removed, it could be an indicator that the team is moving committed work items to another iteration.
 
 ####How it is calculated
@@ -31,7 +31,7 @@ The number of estimated hours for the tasks scheduled in the iteration on the la
 ### Days  
 The number of full days in the iteration (Excluding weekends)
 
-###Estimated Ratio
+###Percent Estimated
 Represents the ratio of work items (stories and defects) that have estimates.
 
 ####How it is calculated
@@ -41,13 +41,13 @@ Stories that have a PlanEstimate = 0 (not null) will be counted as estimated.
 ####Coaching Tip
 If there is a very high percentage or stories without estimates, other measures will not be meaningful.  This is really only useful for the beginning of an iteration, and perhaps for an iteration in early flight, but not for an iteration that has ended.  The idea is to catch this early in an iteration so other charts/graphs etc are useful for teams.  A good practice is to have a ready backlog as and entrance criteria to an iteration planning session, a ready backlog means three things, sized, ranked, and stories are elaborated sufficiently with acceptance criteria to enable conversation and confirmation during planning.
 
-###End Acceptance Ratio
+###Last Day Acceptance Ratio
 Indicates whether teams met their commitment, assuming work items have not been removed from the iteration. 
 
 ####How it is calculated
 Divide the plan estimates of the work items in the iteration that were accepted on the last day of the iteration by the total plan estimate of all work items in the iteration.  If analysis type is set to 'counts', the calculation is based on the number of work items, not the plan estimate of the work items.
 
-###In-Progress Ratio
+###Average Daily In-Progress Percentage
 This is an indication of how much work is in progress (WIP).  It is the ratio of the average of the work items in the in-Progress state on a daily basis. 
 
 ####How it is calculated
@@ -58,7 +58,7 @@ If there are no plan estimate totals for an item on one day, the in progress rat
 ####Coaching Tip
 A high percentage here would mean that there is a high degree of daily WIP on average.  Keeping WIP small, reduces context switching and helps team focus on the most important items to reach acceptance.
     
-###End Completion Ratio
+###Last Day Completion Ratio
 Represents the ratio of work completed by iteration end.  A low percentage might imply that there is work planned into an iteration that was left in a schedule state lower than completed.
 
 ####How it is calculated
