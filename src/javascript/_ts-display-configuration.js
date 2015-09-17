@@ -48,8 +48,8 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
         __ratioEstimated: {
             display: true,
-            displayName: 'Estimation Ratio (Current)',
-            range: { red: 0, yellow: 60, green: 90, direction: 'red,yellow,green'},
+            displayName: 'Percent Estimated',
+            range: { red: 0, yellow: 75, green: 95, direction: 'red,yellow,green'},
             tooltip: "<h1>Description</h1>" +
             "Represents the ratio of work items (stories and defects) that have estimates." +
             "<h1>How it is calculated</h1>" +
@@ -66,13 +66,13 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         __ratioInProgress: {
             display: true,
-            range: { green: 0, yellow: 25, red: 35, direction: 'green,yellow,red'},
-            displayName: 'Average Daily In-Progress'
+            range: { green: 0, yellow: 35, red: 50, direction: 'green,yellow,red'},
+            displayName: 'Average Daily In-Progress Percentage'
         },
         __halfAcceptedRatio: {
-            display: true,
-            range: { green: 0, yellow: 50, red: 75, direction: 'green,yellow,red'},
-            displayName: '50% Accepted Point',
+            display: false,
+            range: { green: 0, yellow: 65, red: 90, direction: 'green,yellow,red'},
+            displayName: 'Acceptance Rate Score',
             tooltip: "<h1>Description</h1>" +
             "This is an indication of how well teams are doing with accepting work throughout the iteration.  A high " +
             "percentage would mean that half of the work is being accepted near the end of the iteration.  100% would mean " +
@@ -90,7 +90,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         __halfAcceptedDate: {
             display: false,
-            displayName: "50% Accepted Date"
+            displayName: "Acceptance Rate Score Date"
         },
         __endCompletionRatio: {
             display: true,
@@ -113,7 +113,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __endAcceptanceRatio: {
             display: true,
             displayName: 'Last Day Acceptance Ratio',
-            range: { red: 0, yellow: 50, green: 91, direction: 'red,yellow,green'},
+            range: { red: 0, yellow: 80, green: 95, direction: 'red,yellow,green'},
             tooltip:  "<h1>Description</h1>" +
             "Indicates whether teams met their commitment, assuming work items have not been removed from the iteration. " +
             "<h1>How it is calculated</h1>" +
@@ -146,7 +146,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         __taskChurn: {
             display: true,
-            displayName: 'Task Churn',
+            displayName: 'Percentage of Task Removal at Iteration End',
             tooltip: "<h1>Description</h1>" +
             "An additional metric indicating when tasks have been added or removed on the last day of the iteration.  If a signivicant" +
             "percentage of tasks are removed, it could be an indicator that the team is moving committed work items to another iteration." +
