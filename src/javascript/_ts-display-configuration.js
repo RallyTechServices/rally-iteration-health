@@ -29,6 +29,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
      */
     displaySettings: {
         Name: {
+            displayName: 'Iteration',
             display: true
         },
         StartDate: {
