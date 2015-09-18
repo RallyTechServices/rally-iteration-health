@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Sep 17 2015 15:42:00 GMT-0600 (MDT) -->
+    <!--  Build Date: Fri Sep 18 2015 09:43:17 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Sep 17 2015 15:42:00 GMT-0600 (MDT)";
-        var CHECKSUM = 83474717035;
+        var APP_BUILD_DATE = "Fri Sep 18 2015 09:43:17 GMT-0600 (MDT)";
+        var CHECKSUM = 83573543229;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -207,6 +207,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
      */
     displaySettings: {
         Name: {
+            displayName: 'Iteration',
             display: true
         },
         StartDate: {
