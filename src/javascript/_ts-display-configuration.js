@@ -19,7 +19,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     yellow: '#ffffcc',
     green: '#ccffcc',
     grey: '#e6e6e6',
-    benchmarkGreen: 90,
+    benchmarkGreen: 80,
     benchmarkField: '__ratioEstimated',
     defaultRange: { red: 0, yellow: 60, green: 90, direction: 'red,yellow,green' },
 
@@ -30,21 +30,24 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     displaySettings: {
         Name: {
             displayName: 'Iteration',
-            display: true
+            display: true,
+            colAlign: 'left'
         },
         StartDate: {
             display: true,
-            displayName: 'Start Date'
+            displayName: 'Start Date',
+            colAlign: 'center'
         },
         EndDate: {
             display: true,
-            displayName: 'End Date'
+            displayName: 'End Date',
+            colAlign: 'center'
         },
         __days: {
             display: true,
             displayName: '# Days',
             tooltip: "The number of full days in the iteration " +
-            "(Excluding weekends)",
+            "(Excluding weekends)"
         },
 
         __ratioEstimated: {
@@ -205,12 +208,16 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
             return v;
         },
+        __days: function(v,m,r){
+            m.style = "padding-right:7px;text-align:right;";
+            return v;
+        },
         shortDate: function(value, m) {
 
              if (value && new Date(value) !== 'Invalid Date'){
                 value = new Date(value);
-                m.style = "text-align:right;";
-                return Rally.util.DateTime.formatWithNoYearWithDefault(value, this.context);
+                m.style = "text-align:center;";
+                return Rally.util.DateTime.formatWithDefault(value, this.context);
             }
             return "";
         },

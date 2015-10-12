@@ -183,6 +183,7 @@ Ext.define("rally-iteration-health", {
                     dataIndex: key,
                     text: col.displayName || key,
                     scope: config,
+                    align: col.colAlign || 'right',
                     editRenderer: false
                 };
                 if (col.range){
