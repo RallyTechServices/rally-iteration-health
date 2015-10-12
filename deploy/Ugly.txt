@@ -3,10 +3,10 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Mon Oct 12 2015 12:44:59 GMT-0600 (MDT) -->
+    <!--  Build Date: Mon Oct 12 2015 13:54:48 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Oct 12 2015 12:44:59 GMT-0600 (MDT)";
+        var APP_BUILD_DATE = "Mon Oct 12 2015 13:54:48 GMT-0600 (MDT)";
         var CHECKSUM = [%= checksum %];
     </script>
     

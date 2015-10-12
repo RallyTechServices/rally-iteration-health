@@ -47,11 +47,10 @@ Ext.define('Rally.technicalservices.util.Health',{
         });
 
         var stdev = Rally.technicalservices.util.Health.getStandardDeviation(totals);
-        if (stdev > 0 && Ext.Array.mean(totals) != 0){
+        if (stdev >= 0 && Ext.Array.mean(totals) != 0){
             dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00");
         }
         direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
-
 
         var churn = dev_ratio * direction;
         if (!isNaN(churn)){

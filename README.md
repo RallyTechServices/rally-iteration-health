@@ -63,3 +63,8 @@ Represents the ratio of work completed by iteration end.  A low percentage might
 
 ####How it is calculated
 Divide the plan estimates of the work items in the iteration that are in a schedule state that is Completed or higher at the end of the last day of the iteration by the total plan estimate of all work items in the iteration. If analysis type is set to 'counts', the calculation is based on the count of the work items, not the plan estimate of the work items.
+
+###Percentage of Task Removal At the end of the sprint
+This shows the percentage of task estimate that is removed from the 2nd to last day of the sprint to the last day of the sprint.  
+
+No Data means that there were never any estimated tasks in the sprint.  A task churn of 0% could mean that the task removal didn't change on the last 2 days, or that tasks were removed prior to the last day of the sprint.  

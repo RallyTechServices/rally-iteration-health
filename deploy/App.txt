@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Mon Oct 12 2015 12:44:59 GMT-0600 (MDT) -->
+    <!--  Build Date: Mon Oct 12 2015 13:54:48 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Oct 12 2015 12:44:59 GMT-0600 (MDT)";
-        var CHECKSUM = 84384493439;
+        var APP_BUILD_DATE = "Mon Oct 12 2015 13:54:48 GMT-0600 (MDT)";
+        var CHECKSUM = 88861043363;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -249,7 +249,18 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __ratioInProgress: {
             display: true,
             range: { green: 0, yellow: 35, red: 50, direction: 'green,yellow,red'},
-            displayName: 'Average Daily In-Progress Percentage'
+            displayName: 'Average Daily In-Progress Percentage',
+            tooltip:  "<h1>Description</h1>" +
+            "This is an indication of how much work is in progress (WIP).  It is the ratio of the average of " +
+            "the work items in the in-Progress state on a daily basis. " +
+            "<h1>How it is calculated</h1>" +
+            "Divide the plan estimate of all the work items in the 'in-progress' state by the total plan estimate " +
+            "of the work items in the iteration, divided by the number of days.  If the iteration is in-flight, we'll " +
+            "divide by the number of days so far.   If analysis type is set to counts, the calculation is based on the " +
+            "count of the work items, not the plan estimate of the work items." +
+            "<h1>Coaching Tip</h1>" +
+            "A high percentage here would mean that there is a high degree of daily WIP on average.  Keeping WIP small, " +
+            "reduces context switching and helps team focus on the most important items to reach acceptance."
         },
         __halfAcceptedRatio: {
             display: false,
@@ -268,7 +279,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "<h1>Coaching Tip</h1>" +
             "Common causes of work being accepted late are:  Product Owner is absent or at least not actively participating with the " +
             "team on a daily basis.  Stories do not have clear acceptance criteria.  Teams lack a clear definition of done for stories, " +
-            "to name a few.  A team that tends to accept work items late in the iteration may risk meeting commitment. ",
+            "to name a few.  A team that tends to accept work items late in the iteration may risk meeting commitment. "
         },
         __halfAcceptedDate: {
             display: false,
@@ -412,10 +423,10 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             var ranges = this.displaySettings.__ratioEstimated.range || this.defaultRange;
 
             var color = this.red;
-            if ( percent > ranges.yellow ) {
+            if ( percent >= ranges.yellow ) {
                 color = this.yellow;
             }
-            if ( percent > ranges.green ) {
+            if ( percent >= ranges.green ) {
                 color = this.green;
             }
 
@@ -474,7 +485,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             var color_code = color_range[0];
             Ext.each(color_range, function(c){
-                if (percent > ranges[c]){
+                if (percent >= ranges[c]){
                     color_code = c;
                 }
             });
@@ -557,8 +568,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 text = "Infinity";
                 return Ext.String.format('<div style="display:inline;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
             }
-
-
+            console.log('__taskChurn',value);
             if ( value != -2) {
                 var percent = parseInt( 100 * Math.abs(value), 10 );
                 text = percent + "%";
@@ -680,11 +690,10 @@ Ext.define('Rally.technicalservices.util.Health',{
         });
 
         var stdev = Rally.technicalservices.util.Health.getStandardDeviation(totals);
-        if (stdev > 0 && Ext.Array.mean(totals) != 0){
+        if (stdev >= 0 && Ext.Array.mean(totals) != 0){
             dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00");
         }
         direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
-
 
         var churn = dev_ratio * direction;
         if (!isNaN(churn)){
@@ -928,6 +937,9 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     fields: default_fields,
                     calculate: function(usePoints, skipZeroForEstimation, doneStates) {
                         this.logger.log('calculate', this.get('Name'));
+
+                        this.resetDefaults();
+
                         var iteration_oid = this.get('ObjectID');
 
                         if (this.get('__cfdRecords')){
@@ -991,6 +1003,17 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             });
                         }
                     },
+                    resetDefaults: function(){
+                        this.set('__ratioInProgress',-1);
+                        this.set('__halfAcceptedRatio', -1);
+                        this.set('__halfAcceptedDate','');
+                        this.set('__endCompletionRatio', -1);
+                        this.set('__endAcceptanceRatio'-1);
+                        this.set('__endIncompletionRatio',-1);
+                        this.set('__taskChurn', -2);
+                        this.set('__scopeChurn', -2);
+
+                    },
                     _setError: function(){
 
                         var errorString = 'Error';
@@ -1024,7 +1047,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                 if (usePoints === false){
                                     card_total = cf.get('CardCount') || 0;
                                 }
-                                this.logger.log('cardcount',card_state,card_date, cf.get('CardCount'), cf.get('CardEstimateTotal'));
+                                this.logger.log('cardcount',this.get('Name'),card_state,card_date, cf.get('CardCount'), cf.get('CardEstimateTotal'),card_task_estimate);
                                 if (!daily_totals[card_date]){
                                     daily_totals[card_date] = {};
                                 }
@@ -1066,13 +1089,13 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         this.set('__endIncompletionRatio', incompletion_stats.IncompletionRatio);
 
                         var churn = Rally.technicalservices.util.Health.getChurn(daily_totals);
-                        if (churn){
+                        if (churn !== null){
                             this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_totals));
                         }
 
                         var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
                         this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
-                        if (!isNaN(task_churn)){
+                        if (task_churn !== null){
                             this.set('__taskChurn',task_churn);
                         }
 
