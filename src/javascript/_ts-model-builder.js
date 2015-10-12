@@ -48,6 +48,9 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     fields: default_fields,
                     calculate: function(usePoints, skipZeroForEstimation, doneStates) {
                         this.logger.log('calculate', this.get('Name'));
+
+                        this.resetDefaults();
+
                         var iteration_oid = this.get('ObjectID');
 
                         if (this.get('__cfdRecords')){
@@ -111,6 +114,17 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             });
                         }
                     },
+                    resetDefaults: function(){
+                        this.set('__ratioInProgress',-1);
+                        this.set('__halfAcceptedRatio', -1);
+                        this.set('__halfAcceptedDate','');
+                        this.set('__endCompletionRatio', -1);
+                        this.set('__endAcceptanceRatio'-1);
+                        this.set('__endIncompletionRatio',-1);
+                        this.set('__taskChurn', -2);
+                        this.set('__scopeChurn', -2);
+
+                    },
                     _setError: function(){
 
                         var errorString = 'Error';
@@ -144,7 +158,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                 if (usePoints === false){
                                     card_total = cf.get('CardCount') || 0;
                                 }
-                                this.logger.log('cardcount',card_state,card_date, cf.get('CardCount'), cf.get('CardEstimateTotal'));
+                                this.logger.log('cardcount',this.get('Name'),card_state,card_date, cf.get('CardCount'), cf.get('CardEstimateTotal'),card_task_estimate);
                                 if (!daily_totals[card_date]){
                                     daily_totals[card_date] = {};
                                 }
@@ -186,13 +200,13 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         this.set('__endIncompletionRatio', incompletion_stats.IncompletionRatio);
 
                         var churn = Rally.technicalservices.util.Health.getChurn(daily_totals);
-                        if (churn){
+                        if (churn !== null){
                             this.set('__scopeChurn',Rally.technicalservices.util.Health.getChurn(daily_totals));
                         }
 
                         var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
                         this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
-                        if (!isNaN(task_churn)){
+                        if (task_churn !== null){
                             this.set('__taskChurn',task_churn);
                         }
 

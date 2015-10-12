@@ -19,7 +19,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     yellow: '#ffffcc',
     green: '#ccffcc',
     grey: '#e6e6e6',
-    benchmarkGreen: 90,
+    benchmarkGreen: 80,
     benchmarkField: '__ratioEstimated',
     defaultRange: { red: 0, yellow: 60, green: 90, direction: 'red,yellow,green' },
 
@@ -30,21 +30,24 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     displaySettings: {
         Name: {
             displayName: 'Iteration',
-            display: true
+            display: true,
+            colAlign: 'left'
         },
         StartDate: {
             display: true,
-            displayName: 'Start Date'
+            displayName: 'Start Date',
+            colAlign: 'center'
         },
         EndDate: {
             display: true,
-            displayName: 'End Date'
+            displayName: 'End Date',
+            colAlign: 'center'
         },
         __days: {
             display: true,
             displayName: '# Days',
             tooltip: "The number of full days in the iteration " +
-            "(Excluding weekends)",
+            "(Excluding weekends)"
         },
 
         __ratioEstimated: {
@@ -68,7 +71,18 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __ratioInProgress: {
             display: true,
             range: { green: 0, yellow: 35, red: 50, direction: 'green,yellow,red'},
-            displayName: 'Average Daily In-Progress Percentage'
+            displayName: 'Average Daily In-Progress Percentage',
+            tooltip:  "<h1>Description</h1>" +
+            "This is an indication of how much work is in progress (WIP).  It is the ratio of the average of " +
+            "the work items in the in-Progress state on a daily basis. " +
+            "<h1>How it is calculated</h1>" +
+            "Divide the plan estimate of all the work items in the 'in-progress' state by the total plan estimate " +
+            "of the work items in the iteration, divided by the number of days.  If the iteration is in-flight, we'll " +
+            "divide by the number of days so far.   If analysis type is set to counts, the calculation is based on the " +
+            "count of the work items, not the plan estimate of the work items." +
+            "<h1>Coaching Tip</h1>" +
+            "A high percentage here would mean that there is a high degree of daily WIP on average.  Keeping WIP small, " +
+            "reduces context switching and helps team focus on the most important items to reach acceptance."
         },
         __halfAcceptedRatio: {
             display: false,
@@ -87,7 +101,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "<h1>Coaching Tip</h1>" +
             "Common causes of work being accepted late are:  Product Owner is absent or at least not actively participating with the " +
             "team on a daily basis.  Stories do not have clear acceptance criteria.  Teams lack a clear definition of done for stories, " +
-            "to name a few.  A team that tends to accept work items late in the iteration may risk meeting commitment. ",
+            "to name a few.  A team that tends to accept work items late in the iteration may risk meeting commitment. "
         },
         __halfAcceptedDate: {
             display: false,
@@ -205,12 +219,16 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
             return v;
         },
+        __days: function(v,m,r){
+            m.style = "padding-right:7px;text-align:right;";
+            return v;
+        },
         shortDate: function(value, m) {
 
              if (value && new Date(value) !== 'Invalid Date'){
                 value = new Date(value);
-                m.style = "text-align:right;";
-                return Rally.util.DateTime.formatWithNoYearWithDefault(value, this.context);
+                m.style = "text-align:center;";
+                return Rally.util.DateTime.formatWithDefault(value, this.context);
             }
             return "";
         },
@@ -227,10 +245,10 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             var ranges = this.displaySettings.__ratioEstimated.range || this.defaultRange;
 
             var color = this.red;
-            if ( percent > ranges.yellow ) {
+            if ( percent >= ranges.yellow ) {
                 color = this.yellow;
             }
-            if ( percent > ranges.green ) {
+            if ( percent >= ranges.green ) {
                 color = this.green;
             }
 
@@ -289,7 +307,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             var color_code = color_range[0];
             Ext.each(color_range, function(c){
-                if (percent > ranges[c]){
+                if (percent >= ranges[c]){
                     color_code = c;
                 }
             });
@@ -372,8 +390,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 text = "Infinity";
                 return Ext.String.format('<div style="display:inline;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
             }
-
-
+            console.log('__taskChurn',value);
             if ( value != -2) {
                 var percent = parseInt( 100 * Math.abs(value), 10 );
                 text = percent + "%";

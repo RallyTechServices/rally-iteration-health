@@ -41,13 +41,17 @@ Ext.define('Rally.technicalservices.util.Health',{
         var totals = [],
             days = _.keys(health_hash);
 
+        var dev_ratio = 0;
         _.each(days, function(day){
             totals.push(Rally.technicalservices.util.Health.getDayTotal(health_hash, day));
         });
 
-        var stdev = Rally.technicalservices.util.Health.getStandardDeviation(totals),
-            dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00"),
-            direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
+        var stdev = Rally.technicalservices.util.Health.getStandardDeviation(totals);
+        if (stdev >= 0 && Ext.Array.mean(totals) != 0){
+            dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00");
+        }
+        direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
+
         var churn = dev_ratio * direction;
         if (!isNaN(churn)){
             return dev_ratio * direction;
