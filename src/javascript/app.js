@@ -10,7 +10,7 @@ Ext.define("rally-iteration-health", {
             useSavedRanges: false,
             showVelocityVariation: true,
             velocityVariancePreviousIterationCount: 3,
-            allowGroupByLeafTeam: false
+            allowGroupByLeafTeam: true
         }
     },
     defaultNumIterations: 20,

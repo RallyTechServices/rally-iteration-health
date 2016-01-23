@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sat Jan 23 2016 10:55:42 GMT-0700 (MST) -->
+    <!--  Build Date: Sat Jan 23 2016 10:56:21 GMT-0700 (MST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sat Jan 23 2016 10:55:42 GMT-0700 (MST)";
-        var CHECKSUM = 121594307541;
+        var APP_BUILD_DATE = "Sat Jan 23 2016 10:56:21 GMT-0700 (MST)";
+        var CHECKSUM = 121590312110;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -1425,7 +1425,7 @@ Ext.define("rally-iteration-health", {
             useSavedRanges: false,
             showVelocityVariation: true,
             velocityVariancePreviousIterationCount: 3,
-            allowGroupByLeafTeam: false
+            allowGroupByLeafTeam: true
         }
     },
     defaultNumIterations: 20,
