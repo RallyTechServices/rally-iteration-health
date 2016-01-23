@@ -85,7 +85,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "reduces context switching and helps team focus on the most important items to reach acceptance."
         },
         __halfAcceptedRatio: {
-            display: false,
+            display: true,
             range: { green: 0, yellow: 65, red: 90, direction: 'green,yellow,red'},
             displayName: 'Acceptance Rate Score',
             tooltip: "<h1>Description</h1>" +
@@ -169,6 +169,13 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "The number of estimated hours for the tasks scheduled in the iteration on the last day are subtracted from the total estimated " +
             "hours of tasks scheduled on the next-to-last day, then divided by the next-to-last-day totals to create a percentage.  Note " +
             "that this is calculated from the <b>estimates</b> of all the tasks, not the hours remaining to-do",
+        },
+        __velocityVariance: {
+            display: true,
+            displayName: 'Velocity Variance',
+            range: { green: 0, yellow: 13, red: 20, direction: 'green,yellow,red'},
+            tooltip: "<h1>Description</h1>" +
+            "Variation from the last 3 iteration velocities",
         }
     },
 
@@ -380,6 +387,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return Ext.String.format('<div style="display:inline;width:35px;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
         },
         __taskChurn: function(value,metaData,record) {
+            this.logger.log('__taskChurn', value);
             var text = "No Data",
                 direction = 0,
                 icon_string = "";
@@ -390,7 +398,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 text = "Infinity";
                 return Ext.String.format('<div style="display:inline;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
             }
-            console.log('__taskChurn',value);
+
             if ( value != -2) {
                 var percent = parseInt( 100 * Math.abs(value), 10 );
                 text = percent + "%";
@@ -403,7 +411,24 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 text = "No data";
                 return Ext.String.format('<div style="display:inline;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
             }
-            return Ext.String.format('<div style="display:inline;width:35px;text-align:right;float:right;background-color:{0};">{1}</div>{2}' ,color, text, icon_string);
+             return Ext.String.format('<div style="display:inline;width:35px;text-align:right;float:right;background-color:{0};">{1}</div>{2}' ,color, text, icon_string);
+        },
+        __velocityVariance: function(value, metaData, record){
+            this.logger.log('__velocityVariance', value, record);
+
+            if ( value === null ) {
+                metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
+                return "No Data";
+            }
+            var percent = parseInt( 100 * value, 10 );
+            var text = percent + "%";
+            var ranges = this.displaySettings.__velocityVariance.range;
+
+            var color = this.renderers.getRangeColor(Math.abs(percent), record, ranges, this, true);
+
+            metaData.style = "padding-right:7px;text-align:right;background-color: " + color;
+
+            return text;
         }
 
     },
@@ -458,6 +483,11 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             this.showDateForHalfAcceptanceRatio = true;
         } else {
             this.showDateForHalfAcceptanceRatio = false;
+        }
+        if (settings.showVelocityVariation === true || settings.showVelocityVariation === "true"){
+            this.displaySettings.__velocityVariance.display = true;
+        } else {
+            this.displaySettings.__velocityVariance.display = false;
         }
     }
 });

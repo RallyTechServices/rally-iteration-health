@@ -7,7 +7,8 @@ Ext.define("rally-iteration-health", {
         defaultSettings: {
             showDateForHalfAcceptanceRatio:  true,
             hideTaskMovementColumn: false,
-            useSavedRanges: false
+            useSavedRanges: false,
+            showVelocityVariation: true
         }
     },
     defaultNumIterations: 20,
@@ -145,11 +146,13 @@ Ext.define("rally-iteration-health", {
                         value: today_iso
                     }]
                 });
+
                 this.iterationHealthStore.load({
                     scope: this,
                     callback: function(records, operation, success){
                         this.logger.log("IterationHealthStore callback: ", success, operation, records);
                         if (success){
+
                             if (records.length > 0) {
                                 this._updateDisplay();
                             } else {
@@ -196,6 +199,7 @@ Ext.define("rally-iteration-health", {
                 column_cfgs.push(cfg);
             }
         }, this);
+        this.logger.log('_getColumnCfgs', column_cfgs);
         return column_cfgs;
     },
     _showColumnDescription: function(ct, column, evt, target_element, eOpts){
@@ -255,8 +259,6 @@ Ext.define("rally-iteration-health", {
 
         return null;
     },
-
-
     _updateDisplay: function(){
         var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null,
             use_points = (metric_type == 'points'),
@@ -321,12 +323,14 @@ Ext.define("rally-iteration-health", {
         var settings = [],
             display_half_accepted = false,
             half_accepted_ratio_name = '__halfAcceptedRatio',
-            task_churn_name = "Task Churn";
+            task_churn_name = "Task Churn",
+            velocity_variance_name = "Velocity Variance";
 
         if (this.healthConfig){
             display_half_accepted= this.healthConfig.displaySettings.__halfAcceptedRatio.display;
             half_accepted_ratio_name = this.healthConfig.displaySettings.__halfAcceptedRatio.displayName;
             task_churn_name = this.healthConfig.displaySettings.__taskChurn.displayName;
+            velocity_variance_name = this.healthConfig.displaySettings.__velocityVariance.displayName;
         }
 
         if (display_half_accepted){
@@ -346,6 +350,14 @@ Ext.define("rally-iteration-health", {
             fieldLabel: '',
             margin: '0 0 25 200',
             boxLabel: 'Hide ' + task_churn_name
+        });
+        settings.push({
+            name: 'showVelocityVariation',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: '0 0 25 200',
+            boxLabel: 'Show ' + velocity_variance_name
         });
         return settings;
     },

@@ -40,6 +40,15 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                 },{
                     name: '__scopeChurn',
                     defaultValue: -2
+                },{
+                    name: '__velocity',
+                    defaultValue: -2
+                },{
+                    name: '__velocityVariance',
+                    defaultValue: null
+                },{
+                    name: '__currentVelocity',
+                    defaultValue: -2
                 }];
 
                 var new_model = Ext.define(newModelName, {
@@ -83,36 +92,119 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                 }
                             });
 
-                            var iteration_name = this.get('Name'),
-                                filters = [{
-                                    property: 'Iteration.Name',
-                                    value: iteration_name
-                                }];
-                            if (skipZeroForEstimation){
-                                filters.push({
-                                    property: 'PlanEstimate',
-                                    operator: '!=',
-                                    value: 0
-                                });
-                            }
+                           this._loadPreviousIterations(skipZeroForEstimation).then({
+                               success: function(iterationObjectIDs){
+                                    this._loadIterationArtifacts(skipZeroForEstimation, iterationObjectIDs).then({
+                                        success: function(records){
+                                            this._setArtifacts(records, doneStates, iteration_oid);
+                                        },
+                                        failure: function(msg){
+                                            this.set('__ratioEstimated', 'Error');
+                                        },
+                                        scope: this
+                                    });
+                               },
+                               failure: function(msg){
+                                   this.set('__ratioEstimated', 'Error');
+                               },
+                               scope: this
+                           });
 
-                            var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
-                                models: ['Defect', 'UserStory'],
-                                fetch: ['ObjectID','PlanEstimate','ScheduleState','FormattedID'],
-                                filters: filters
-                            });
-                            artifact_store.load({
-                                scope: this,
-                                callback: function(records, operation, success){
-                                    this.logger.log('Iteration artifacts callback: ', success, operation, records.length);
-                                    if (success){
-                                        this._setArtifacts(records);
-                                    } else {
-                                        this.set('__ratioEstimated', 'Error');
+                            //var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
+                            //    models: ['Defect', 'UserStory'],
+                            //    fetch: ['ObjectID','PlanEstimate','ScheduleState','FormattedID'],
+                            //    filters: filters
+                            //});
+                            //artifact_store.load({
+                            //    scope: this,
+                            //    callback: function(records, operation, success){
+                            //        this.logger.log('Iteration artifacts callback: ', success, operation, records.length);
+                            //        if (success){
+                            //            this._setArtifacts(records, doneStates);
+                            //        } else {
+                            //            this.set('__ratioEstimated', 'Error');
+                            //        }
+                            //    }
+                            //});
+                        }
+                    },
+                    _loadPreviousIterations: function(){
+                        var deferred = Ext.create('Deft.Deferred');
+                        var previousIterations = 3;
+
+                        this.logger.log('_loadPreviousIterations');
+                        Ext.create('Rally.data.wsapi.Store',{
+                            model: 'Iteration',
+                            fetch: ['ObjectID'],
+                            filters: [{
+                                property: 'Project',
+                                value: this.get('Project')._ref
+                            },{
+                                property: 'StartDate',
+                                operator: "<",
+                                value: this.get('StartDate')
+                            }],
+                            sorters: [{
+                                property: "StartDate",
+                                direction: "DESC"
+                            }],
+                            pageSize: previousIterations,
+                            limit: previousIterations
+                        }).load({
+                            callback: function(records, operation){
+                                if (operation.wasSuccessful()){
+                                    var objectIDs = [];
+                                    if (records.length > 0){
+                                        objectIDs = _.map(records, function(r){ return r.get('ObjectID'); });
                                     }
+                                    deferred.resolve(objectIDs);
+
+                                } else {
+                                    deferred.reject("Error retrieving previous iterations: " + operation.error.errors.join(','));
                                 }
+                            }
+                        });
+                        return deferred;
+                    },
+                    _loadIterationArtifacts: function(skipZeroForEstimation, previousIterationObjectIDs){
+
+                        var deferred = Ext.create('Deft.Deferred'),
+                            filters = _.map(previousIterationObjectIDs, function(oid){ return {property: 'Iteration.ObjectID', value: oid }});
+
+                        filters.push({property: 'Iteration.ObjectID', value: this.get('ObjectID')});
+
+                        if (skipZeroForEstimation){
+                            filters.push({
+                                property: 'PlanEstimate',
+                                operator: '!=',
+                                value: 0
                             });
                         }
+
+                        filters = Rally.data.wsapi.Filter.or(filters);
+                        this.logger.log('_loadIterationArtifacts', filters.toString());
+
+                        console.log('filters', filters.toString(), previousIterationObjectIDs);
+                        var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
+                            models: ['Defect', 'UserStory','DefectSuite','TestSet'],
+                            fetch: ['ObjectID','PlanEstimate','ScheduleState','Iteration'],
+                            filters: filters,
+                            limit: 'Infinity'
+                        });
+                        artifact_store.load({
+                            scope: this,
+                            callback: function(records, operation, success){
+                                this.logger.log('Iteration artifacts callback: ', success, operation, records.length);
+                                if (success){
+                                    deferred.resolve(records);
+                                } else {
+                                    deferred.reject("Error fetching artifacts: " + operation.error.errors.join(','));
+                                }
+
+                            }
+                        });
+
+                        return deferred;
                     },
                     resetDefaults: function(){
                         this.set('__ratioInProgress',-1);
@@ -123,6 +215,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         this.set('__endIncompletionRatio',-1);
                         this.set('__taskChurn', -2);
                         this.set('__scopeChurn', -2);
+                        this.set('__velocityVariance',null);
 
                     },
                     _setError: function(){
@@ -139,6 +232,8 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                         this.set('__scopeChurn',errorString);
                         this.set('__taskChurn',errorString);
+
+                        this.set('__velocityVariance',errorString);
 
                     },
                     _processCFD: function(records, usePoints, doneStates){
@@ -210,6 +305,8 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             this.set('__taskChurn',task_churn);
                         }
 
+                        var velocity = Rally.technicalservices.util.Health.getVelocity(daily_totals, doneStates);
+                        this.set('__velocity', velocity);
 
                     },
                     /**
@@ -230,22 +327,46 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
                         return false;
                     },
-                    _setArtifacts: function(records){
+                    _setArtifacts: function(records, doneStates, thisIterationObjectID){
                        var count_of_estimated_artifacts = 0;
                         this.logger.log('_setArtifacts', records);
+                        var velocity = {},
+                            this_velocity = 0,
+                            this_count = 0;
 
                         Ext.Array.each(records,function(artifact){
-                           var plan_estimate = artifact.get('PlanEstimate');
-                            if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
-                                count_of_estimated_artifacts++;
+                            var artifact_iteration = artifact.get('Iteration').ObjectID,
+                                plan_estimate = artifact.get('PlanEstimate');
+
+                            if (artifact_iteration === thisIterationObjectID){
+                                this_count++;
+                                if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
+                                    count_of_estimated_artifacts++;
+                                    if (Ext.Array.contains(doneStates, artifact.get('ScheduleState'))){
+                                        this_velocity += plan_estimate;
+                                    }
+                                } else {
+                                    this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.get('FormattedID'));
+                                }
                             } else {
-                                this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.get('FormattedID'));
+                                if (Ext.Array.contains(doneStates, artifact.get('ScheduleState'))){
+                                    velocity[artifact_iteration] = (velocity[artifact_iteration] || 0) + plan_estimate;
+                                }
                             }
                         }, this);
-                        this.logger.log('estimated ratio estimated: ', count_of_estimated_artifacts, ' total: ',  records.length);
-                        if (records && records.length > 0){
-                            this.set('__ratioEstimated',count_of_estimated_artifacts/records.length);
+
+                        //calculate velocity variance
+                        var variance = Rally.technicalservices.util.Health.getVelocityVariance(this_velocity, _.values(velocity));
+                        if (variance){
+                            this.set('__velocityVariance', variance);
                         }
+                        this.set('__currentVelocity');  // this uses velocity that is as of now
+
+                        this.logger.log('estimated ratio estimated: ', count_of_estimated_artifacts, ' total: ', this_count);
+                        if (this_count > 0){
+                            this.set('__ratioEstimated',count_of_estimated_artifacts/this_count);
+                        }
+
                     }
                 });
                 deferred.resolve(new_model);
