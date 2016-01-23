@@ -14,7 +14,12 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                 },{
                     name: '__days',
                     convert: function(value, record){
-                        return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true) + 1;
+                        if (record.get('EndDate') && record.get('StartDate')){
+                            return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true) + 1;
+                        } else {
+                            return '--';
+                        }
+
                     }
                 },{
                     name: '__ratioInProgress',
@@ -109,23 +114,6 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                },
                                scope: this
                            });
-
-                            //var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
-                            //    models: ['Defect', 'UserStory'],
-                            //    fetch: ['ObjectID','PlanEstimate','ScheduleState','FormattedID'],
-                            //    filters: filters
-                            //});
-                            //artifact_store.load({
-                            //    scope: this,
-                            //    callback: function(records, operation, success){
-                            //        this.logger.log('Iteration artifacts callback: ', success, operation, records.length);
-                            //        if (success){
-                            //            this._setArtifacts(records, doneStates);
-                            //        } else {
-                            //            this.set('__ratioEstimated', 'Error');
-                            //        }
-                            //    }
-                            //});
                         }
                     },
                     _loadPreviousIterations: function(previousIterations){
