@@ -67,7 +67,8 @@ Divide the plan estimates of the work items in the iteration that are in a sched
 ###Percentage of Task Removal At the end of the sprint
 This shows the percentage of task estimate that is removed from the 2nd to last day of the sprint to the last day of the sprint.  
 
-###Velocity Variance
-This shows the variance of the velocity from the past 3 sprints.  The velocities used in this calculation is the current velocity, which is calculated by adding all stories associated with the iteration as of the current date.
-
 No Data means that there were never any estimated tasks in the sprint.  A task churn of 0% could mean that the task removal didn't change on the last 2 days, or that tasks were removed prior to the last day of the sprint.  
+
+###Velocity Variance
+This shows the % variance of the velocity from the average of the past 3 sprints. If there is only data from less than that, then that data will be used.  Otherwise the velocity variance will show as No Data.  The velocities used in this calculation is the current velocity, which is calculated by adding all stories associated with the iteration as of the current date.
+

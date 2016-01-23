@@ -55,7 +55,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     extend: model,
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
-                    calculate: function(usePoints, skipZeroForEstimation, doneStates) {
+                    calculate: function(usePoints, skipZeroForEstimation, previousIterationCount, doneStates) {
                         this.logger.log('calculate', this.get('Name'));
 
                         this.resetDefaults();
@@ -92,7 +92,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                 }
                             });
 
-                           this._loadPreviousIterations(skipZeroForEstimation).then({
+                           this._loadPreviousIterations(previousIterationCount).then({
                                success: function(iterationObjectIDs){
                                     this._loadIterationArtifacts(skipZeroForEstimation, iterationObjectIDs).then({
                                         success: function(records){
@@ -128,9 +128,8 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             //});
                         }
                     },
-                    _loadPreviousIterations: function(){
+                    _loadPreviousIterations: function(previousIterations){
                         var deferred = Ext.create('Deft.Deferred');
-                        var previousIterations = 3;
 
                         this.logger.log('_loadPreviousIterations');
                         Ext.create('Rally.data.wsapi.Store',{

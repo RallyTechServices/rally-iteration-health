@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sat Jan 23 2016 07:38:53 GMT-0700 (MST) -->
+    <!--  Build Date: Sat Jan 23 2016 07:56:32 GMT-0700 (MST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sat Jan 23 2016 07:38:53 GMT-0700 (MST)";
-        var CHECKSUM = 110206094799;
+        var APP_BUILD_DATE = "Sat Jan 23 2016 07:56:32 GMT-0700 (MST)";
+        var CHECKSUM = 112959545991;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -353,7 +353,11 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             displayName: 'Velocity Variance',
             range: { green: 0, yellow: 13, red: 20, direction: 'green,yellow,red'},
             tooltip: "<h1>Description</h1>" +
-            "Variation from the last 3 iteration velocities",
+            "Velocity Variance is the % variance of the velocity from the average of a number of previous sprints (e.g. 3). If there is" +
+            " only data from less than that number, then that data will be used.  Otherwise the velocity variance will show as No Data.  " +
+            "<h1>How it is calculated</h1>" +
+            "The velocities used in this calculation is the current velocity, which is calculated by adding all stories associated with " +
+            " the iteration as of the current date",
         }
     },
 
@@ -990,7 +994,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     extend: model,
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
-                    calculate: function(usePoints, skipZeroForEstimation, doneStates) {
+                    calculate: function(usePoints, skipZeroForEstimation, previousIterationCount, doneStates) {
                         this.logger.log('calculate', this.get('Name'));
 
                         this.resetDefaults();
@@ -1027,7 +1031,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                 }
                             });
 
-                           this._loadPreviousIterations(skipZeroForEstimation).then({
+                           this._loadPreviousIterations(previousIterationCount).then({
                                success: function(iterationObjectIDs){
                                     this._loadIterationArtifacts(skipZeroForEstimation, iterationObjectIDs).then({
                                         success: function(records){
@@ -1063,9 +1067,8 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             //});
                         }
                     },
-                    _loadPreviousIterations: function(){
+                    _loadPreviousIterations: function(previousIterations){
                         var deferred = Ext.create('Deft.Deferred');
-                        var previousIterations = 3;
 
                         this.logger.log('_loadPreviousIterations');
                         Ext.create('Rally.data.wsapi.Store',{
@@ -1432,7 +1435,8 @@ Ext.define("rally-iteration-health", {
             showDateForHalfAcceptanceRatio:  true,
             hideTaskMovementColumn: false,
             useSavedRanges: false,
-            showVelocityVariation: true
+            showVelocityVariation: true,
+            velocityVariancePreviousIterationCount: 3
         }
     },
     defaultNumIterations: 20,
@@ -1613,12 +1617,12 @@ Ext.define("rally-iteration-health", {
                     align: col.colAlign || 'right',
                     editRenderer: false
                 };
-                if (col.range){
-                   cfg.listeners = {
-                        scope: this,
-                        headerclick: this._showColumnDescription
-                    };
-                }
+
+               cfg.listeners = {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                };
+
                 cfg.renderer = config.getRenderer(cfg.dataIndex);
                 column_cfgs.push(cfg);
             }
@@ -1642,7 +1646,7 @@ Ext.define("rally-iteration-health", {
         if (adjustor){
             items.push(adjustor);
         }
-
+        this.logger.log('_showColumnDesription', column.dataIndex);
         this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
             defaults: { padding: 5, margin: 5 },
             closable: true,
@@ -1686,7 +1690,8 @@ Ext.define("rally-iteration-health", {
     _updateDisplay: function(){
         var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null,
             use_points = (metric_type == 'points'),
-            skip_zero = this.healthConfig.skipZeroForEstimationRatio;
+            skip_zero = this.healthConfig.skipZeroForEstimationRatio,
+            velocity_variation_previous_iteration_count = this.getSettings('velocityVariancePreviousIterationCount');
         this.healthConfig.usePoints = use_points;
 
         this.logger.log('_updateDisplay', this.iterationHealthStore, metric_type, use_points);
@@ -1697,7 +1702,7 @@ Ext.define("rally-iteration-health", {
 
         //Update the store to load supporting records or recalculate with different metric.
         _.each(this.iterationHealthStore.getRecords(), function(r){
-            r.calculate(use_points, skip_zero, this.healthConfig.doneStates);
+            r.calculate(use_points, skip_zero, velocity_variation_previous_iteration_count, this.healthConfig.doneStates);
         }, this);
 
         var column_cfgs = this._getColumnCfgs();

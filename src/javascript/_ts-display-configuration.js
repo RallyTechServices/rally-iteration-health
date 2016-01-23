@@ -175,7 +175,11 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             displayName: 'Velocity Variance',
             range: { green: 0, yellow: 13, red: 20, direction: 'green,yellow,red'},
             tooltip: "<h1>Description</h1>" +
-            "Variation from the last 3 iteration velocities",
+            "Velocity Variance is the % variance of the velocity from the average of a number of previous sprints (e.g. 3). If there is" +
+            " only data from less than that number, then that data will be used.  Otherwise the velocity variance will show as No Data.  " +
+            "<h1>How it is calculated</h1>" +
+            "The velocities used in this calculation is the current velocity, which is calculated by adding all stories associated with " +
+            " the iteration as of the current date",
         }
     },
 

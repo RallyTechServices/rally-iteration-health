@@ -8,7 +8,8 @@ Ext.define("rally-iteration-health", {
             showDateForHalfAcceptanceRatio:  true,
             hideTaskMovementColumn: false,
             useSavedRanges: false,
-            showVelocityVariation: true
+            showVelocityVariation: true,
+            velocityVariancePreviousIterationCount: 3
         }
     },
     defaultNumIterations: 20,
@@ -189,12 +190,12 @@ Ext.define("rally-iteration-health", {
                     align: col.colAlign || 'right',
                     editRenderer: false
                 };
-                if (col.range){
-                   cfg.listeners = {
-                        scope: this,
-                        headerclick: this._showColumnDescription
-                    };
-                }
+
+               cfg.listeners = {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                };
+
                 cfg.renderer = config.getRenderer(cfg.dataIndex);
                 column_cfgs.push(cfg);
             }
@@ -218,7 +219,7 @@ Ext.define("rally-iteration-health", {
         if (adjustor){
             items.push(adjustor);
         }
-
+        this.logger.log('_showColumnDesription', column.dataIndex);
         this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
             defaults: { padding: 5, margin: 5 },
             closable: true,
@@ -262,7 +263,8 @@ Ext.define("rally-iteration-health", {
     _updateDisplay: function(){
         var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null,
             use_points = (metric_type == 'points'),
-            skip_zero = this.healthConfig.skipZeroForEstimationRatio;
+            skip_zero = this.healthConfig.skipZeroForEstimationRatio,
+            velocity_variation_previous_iteration_count = this.getSettings('velocityVariancePreviousIterationCount');
         this.healthConfig.usePoints = use_points;
 
         this.logger.log('_updateDisplay', this.iterationHealthStore, metric_type, use_points);
@@ -273,7 +275,7 @@ Ext.define("rally-iteration-health", {
 
         //Update the store to load supporting records or recalculate with different metric.
         _.each(this.iterationHealthStore.getRecords(), function(r){
-            r.calculate(use_points, skip_zero, this.healthConfig.doneStates);
+            r.calculate(use_points, skip_zero, velocity_variation_previous_iteration_count, this.healthConfig.doneStates);
         }, this);
 
         var column_cfgs = this._getColumnCfgs();
