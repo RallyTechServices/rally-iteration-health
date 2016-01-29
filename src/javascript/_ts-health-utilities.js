@@ -193,10 +193,13 @@ Ext.define('Rally.technicalservices.util.Health',{
         return {CompletionRatio: inverse_ratio, IncompletionRatio: ratio };
 
     },
-    getVelocityVariance: function(velocity, previousVelocities){
-        if (previousVelocities && previousVelocities.length > 0){
+    getVelocityVariance: function(velocity, previousVelocities, minNumberPreviousVelocities){
+        console.log('xxxgetVelocityVariance',velocity, previousVelocities,minNumberPreviousVelocities)
+        if (previousVelocities && previousVelocities.length >= minNumberPreviousVelocities){
             var average_velocity = Ext.Array.mean(previousVelocities),
                 velocity_variance = 0;
+
+            console.log('xxxgetVelocityVariance average', average_velocity);
             if (average_velocity > 0){
                 velocity_variance = Number(velocity/average_velocity - 1);
                 return velocity_variance;

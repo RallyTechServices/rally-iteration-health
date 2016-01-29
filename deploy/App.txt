@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sat Jan 23 2016 10:56:21 GMT-0700 (MST) -->
+    <!--  Build Date: Fri Jan 29 2016 16:04:12 GMT-0700 (MST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sat Jan 23 2016 10:56:21 GMT-0700 (MST)";
-        var CHECKSUM = 121590312110;
+        var APP_BUILD_DATE = "Fri Jan 29 2016 16:04:12 GMT-0700 (MST)";
+        var CHECKSUM = 140422607289;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -870,10 +870,13 @@ Ext.define('Rally.technicalservices.util.Health',{
         return {CompletionRatio: inverse_ratio, IncompletionRatio: ratio };
 
     },
-    getVelocityVariance: function(velocity, previousVelocities){
-        if (previousVelocities && previousVelocities.length > 0){
+    getVelocityVariance: function(velocity, previousVelocities, minNumberPreviousVelocities){
+        console.log('xxxgetVelocityVariance',velocity, previousVelocities,minNumberPreviousVelocities)
+        if (previousVelocities && previousVelocities.length >= minNumberPreviousVelocities){
             var average_velocity = Ext.Array.mean(previousVelocities),
                 velocity_variance = 0;
+
+            console.log('xxxgetVelocityVariance average', average_velocity);
             if (average_velocity > 0){
                 velocity_variance = Number(velocity/average_velocity - 1);
                 return velocity_variance;
@@ -1006,132 +1009,22 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
 
                         var iteration_oid = this.get('ObjectID');
 
-                        if (this.get('__cfdRecords')){
-                             this._processCFD(this.get('__cfdRecords'), usePoints, doneStates);
-                        } else {
-                            var store = Ext.create('Rally.data.wsapi.Store', {
-                                model: 'IterationCumulativeFlowData',
-                                filters: [{property: 'IterationObjectID', value: iteration_oid}],
-                                fetch: ['CardCount', 'CardEstimateTotal', 'CreationDate', 'IterationObjectID', 'TaskEstimateTotal', 'CardToDoTotal', 'CardState'],
-                                sorters: [{
-                                    property: 'CreationDate',
-                                    direction: 'ASC'
-                                }],
-                                limit: 'Infinity'
-                            });
-
-                            store.load({
-                                scope: this,
-                                callback: function(records, operation, success){
-                                    this.logger.log('Iteration CFD callback', success, this.get('Name'), operation, records, records.length);
-                                    if (success){
-                                        if (records && records.length > 0){
-                                            this.set('__cfdRecords',records);
-                                            this._processCFD(records, usePoints, doneStates);
-                                        }
-                                    } else {
-                                        this.logger.log('Error loading CFD records for Iteration',operation);
-                                        this._setError();
-                                    }
-                                }
-                            });
-
-                           this._loadPreviousIterations(previousIterationCount).then({
-                               success: function(iterationObjectIDs){
-                                    this._loadIterationArtifacts(skipZeroForEstimation, iterationObjectIDs).then({
-                                        success: function(records){
-                                            this._setArtifacts(records, doneStates, iteration_oid);
-                                        },
-                                        failure: function(msg){
-                                            this.set('__ratioEstimated', 'Error');
-                                        },
-                                        scope: this
-                                    });
-                               },
-                               failure: function(msg){
-                                   this.set('__ratioEstimated', 'Error');
-                               },
-                               scope: this
-                           });
-                        }
-                    },
-                    _loadPreviousIterations: function(previousIterations){
-                        var deferred = Ext.create('Deft.Deferred');
-
-                        this.logger.log('_loadPreviousIterations');
-                        Ext.create('Rally.data.wsapi.Store',{
-                            model: 'Iteration',
-                            fetch: ['ObjectID'],
-                            filters: [{
-                                property: 'Project',
-                                value: this.get('Project')._ref
-                            },{
-                                property: 'StartDate',
-                                operator: "<",
-                                value: this.get('StartDate')
-                            }],
-                            sorters: [{
-                                property: "StartDate",
-                                direction: "DESC"
-                            }],
-                            pageSize: previousIterations,
-                            limit: previousIterations
-                        }).load({
-                            callback: function(records, operation){
-                                if (operation.wasSuccessful()){
-                                    var objectIDs = [];
-                                    if (records.length > 0){
-                                        objectIDs = _.map(records, function(r){ return r.get('ObjectID'); });
-                                    }
-                                    deferred.resolve(objectIDs);
-
-                                } else {
-                                    deferred.reject("Error retrieving previous iterations: " + operation.error.errors.join(','));
-                                }
-                            }
-                        });
-                        return deferred;
-                    },
-                    _loadIterationArtifacts: function(skipZeroForEstimation, previousIterationObjectIDs){
-
-                        var deferred = Ext.create('Deft.Deferred'),
-                            filters = _.map(previousIterationObjectIDs, function(oid){ return {property: 'Iteration.ObjectID', value: oid }});
-
-                        filters.push({property: 'Iteration.ObjectID', value: this.get('ObjectID')});
-
-                        if (skipZeroForEstimation){
-                            filters.push({
-                                property: 'PlanEstimate',
-                                operator: '!=',
-                                value: 0
-                            });
+                        if (this.get('__cfdRecords')) {
+                            this._processCFD(this.get('__cfdRecords'), usePoints, doneStates);
                         }
 
-                        filters = Rally.data.wsapi.Filter.or(filters);
-                        this.logger.log('_loadIterationArtifacts', filters.toString());
-
-                        console.log('filters', filters.toString(), previousIterationObjectIDs);
-                        var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
-                            models: ['Defect', 'UserStory','DefectSuite','TestSet'],
-                            fetch: ['ObjectID','PlanEstimate','ScheduleState','Iteration'],
-                            filters: filters,
-                            limit: 'Infinity'
-                        });
-                        artifact_store.load({
-                            scope: this,
-                            callback: function(records, operation, success){
-                                this.logger.log('Iteration artifacts callback: ', success, operation, records.length);
-                                if (success){
-                                    deferred.resolve(records);
-                                } else {
-                                    deferred.reject("Error fetching artifacts: " + operation.error.errors.join(','));
-                                }
-
+                        if (this.get('__iterationArtifacts')){
+                            this._setArtifacts(this.get('__iterationArtifacts'), doneStates, iteration_oid);
+                            if (this.get('__previousIterationVelocities') && this.get('EndDate') < new Date()){
+                                var variance = Rally.technicalservices.util.Health.getVelocityVariance(this.get('__currentVelocity'),this.get('__previousIterationVelocities'),previousIterationCount);
+                                this.set('__velocityVariance', variance);
                             }
-                        });
+                        }
 
-                        return deferred;
+
                     },
+
+
                     resetDefaults: function(){
                         this.set('__ratioInProgress',-1);
                         this.set('__halfAcceptedRatio', -1);
@@ -1169,17 +1062,17 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             counter = 0;
                         this.logger.log('_processCFD', records.length, usePoints, doneStates,records);
                         Ext.Array.each(records, function(cf) {
-                            var card_date = cf.get('CreationDate');
+                            var card_date = cf.CreationDate; //cf.get('CreationDate');
 
                             if (this._isValidDate(card_date)){
-                                var card_total = cf.get('CardEstimateTotal') || 0,
-                                    card_state = cf.get('CardState'),
-                                    card_task_estimate = cf.get('TaskEstimateTotal') || 0;
+                                var card_total = cf.CardEstimateTotal || 0,
+                                    card_state = cf.CardState,
+                                    card_task_estimate = cf.TaskEstimateTotal || 0;
 
                                 if (usePoints === false){
-                                    card_total = cf.get('CardCount') || 0;
+                                    card_total = cf.CardCount || 0;
                                 }
-                                this.logger.log('cardcount',this.get('Name'),card_state,card_date, cf.get('CardCount'), cf.get('CardEstimateTotal'),card_task_estimate);
+                                //this.logger.log('cardcount',this.get('Name'),card_state,card_date, cf.CardCount, cf.CardEstimateTotal,card_task_estimate);
                                 if (!daily_totals[card_date]){
                                     daily_totals[card_date] = {};
                                 }
@@ -1202,10 +1095,10 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             inprogress_state = "In-Progress",
                             days = this.get('__days');
 
-                        this.logger.log('totals',this.get('Name'),daily_totals, daily_task_estimate_totals, doneStates);
+                        //this.logger.log('totals',this.get('Name'),daily_totals, daily_task_estimate_totals, doneStates);
 
                         var avg_daily_in_progress = Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state);
-                        this.logger.log('avg_daily_inprogress',this.get('Name'), avg_daily_in_progress)
+                        //this.logger.log('avg_daily_inprogress',this.get('Name'), avg_daily_in_progress)
                         if (avg_daily_in_progress > 0){
                             this.set('__ratioInProgress',avg_daily_in_progress);
                         }
@@ -1226,7 +1119,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
 
                         var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
-                        this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
+                        //this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
                         if (task_churn !== null){
                             this.set('__taskChurn',task_churn);
                         }
@@ -1261,32 +1154,22 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             this_count = 0;
 
                         Ext.Array.each(records,function(artifact){
-                            var artifact_iteration = artifact.get('Iteration').ObjectID,
-                                plan_estimate = artifact.get('PlanEstimate');
+                            var artifact_iteration = artifact.Iteration.ObjectID,
+                                plan_estimate = artifact.PlanEstimate;
 
-                            if (artifact_iteration === thisIterationObjectID){
                                 this_count++;
                                 if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
                                     count_of_estimated_artifacts++;
-                                    if (Ext.Array.contains(doneStates, artifact.get('ScheduleState'))){
+                                    if (Ext.Array.contains(doneStates, artifact.ScheduleState)){
                                         this_velocity += plan_estimate;
                                     }
                                 } else {
-                                    this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.get('FormattedID'));
+                                    this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.FormattedID);
                                 }
-                            } else {
-                                if (Ext.Array.contains(doneStates, artifact.get('ScheduleState'))){
-                                    velocity[artifact_iteration] = (velocity[artifact_iteration] || 0) + plan_estimate;
-                                }
-                            }
                         }, this);
 
-                        //calculate velocity variance
-                        var variance = Rally.technicalservices.util.Health.getVelocityVariance(this_velocity, _.values(velocity));
-                        if (variance){
-                            this.set('__velocityVariance', variance);
-                        }
-                        this.set('__currentVelocity');  // this uses velocity that is as of now
+                        this.set('__currentVelocity', this_velocity);  // this uses velocity that is as of now
+
 
                         this.logger.log('estimated ratio estimated: ', count_of_estimated_artifacts, ' total: ', this_count);
                         if (this_count > 0){
@@ -1424,7 +1307,7 @@ Ext.define("rally-iteration-health", {
             hideTaskMovementColumn: false,
             useSavedRanges: false,
             showVelocityVariation: true,
-            velocityVariancePreviousIterationCount: 3,
+            previousIterations: 3,
             allowGroupByLeafTeam: true
         }
     },
@@ -1536,78 +1419,34 @@ Ext.define("rally-iteration-health", {
         });
     },
     _fetchIterationsForMultipleTeams: function(nbf){
-        var today_iso = Rally.util.DateTime.toIsoString(new Date()),
-            num_iterations = nbf ? nbf.getValue() : this.defaultNumIterations;
+        var today_iso = Rally.util.DateTime.toIsoString(new Date());
 
         /**
          * if we are at the leaf node, then just use the limit and page size to limit the iterations.  If we are not, then
          * we should load in the iterations for each project and pass those in as a filter.
          */
+         this._loadIterations({
 
-         Ext.create('Rally.data.wsapi.Store',{
-             model: 'Iteration',
-             fetch: ['ObjectID','Project','Children'],
+             filters: [{
+                 property: 'EndDate',
+                 operator: '<',
+                 value: today_iso
+             }],
              limit: 'Infinity',
              context: {
                  project: this.getContext().getProject()._ref,
                  projectScopeDown: true
              },
-             filters: [{
-                property: 'EndDate',
-                operator: '<',
-                value: today_iso
-            }],
              sorters: [{
                  property: 'EndDate',
                  direction: 'DESC'
-             }]
-         }).load({
-             callback: function(records, operation){
-                 var projectIterationHash = {};
-                 _.each(records, function(r){
-                     if (r.get('Project') && r.get('Project').Children && r.get('Project').Children.Count === 0){
-                         if (!projectIterationHash[r.get('Project').ObjectID]){
-                             projectIterationHash[r.get('Project').ObjectID] = [];
-                         }
-                         projectIterationHash[r.get('Project').ObjectID].push(r);
-                     }
+             }],
+             groupField: 'Name',
+             groupDir: 'ASC',
+             getGroupString: function(record) {
+                 return record.get('Project').Name;
+             }
 
-                 });
-                 var iterationOids = [];
-                 _.each(projectIterationHash, function(recs, project){
-                     iterationOids = iterationOids.concat(_.map(recs.slice(0,num_iterations-1), function(r){ return r.get('ObjectID'); }));
-                 });
-
-
-                 var filters = _.map(iterationOids, function(oid){ return {property: 'ObjectID', value: oid};});
-                 if (filters.length > 0){
-                     filters = Rally.data.wsapi.Filter.or(filters);
-                 }
-
-
-                 this.logger.log('_fetchIterationsMultipleProjects', filters.toString());
-
-                 this._loadIterations({
-                     limit: num_iterations,
-                     context: {
-                         project: this.getContext().getProject()._ref,
-                         projectScopeDown: true
-                     },
-                     sorters: [{
-                         property: 'EndDate',
-                         direction: 'DESC'
-                     }],
-                     filters: filters,
-                     groupField: 'Name',
-                     groupDir: 'ASC',
-                     getGroupString: function(record) {
-                         return record.get('Project').Name;
-                     }
-
-                 });
-
-             },
-             scope: this
          });
     },
     _fetchIterationsForLeafTeam: function(nbf){
@@ -1617,6 +1456,7 @@ Ext.define("rally-iteration-health", {
 
         this._loadIterations({
             limit: num_iterations,
+            pageSize: num_iterations,
             context: {
                 project: this.getContext().getProject()._ref
             },
@@ -1642,31 +1482,35 @@ Ext.define("rally-iteration-health", {
             scope: this,
             success: function(model){
                 storeConfig.model = model;
-                storeConfig.fetch = ['ObjectID','Name','StartDate','EndDate','PlannedVelocity','Project'];
+                storeConfig.fetch = ['ObjectID','Name','StartDate','EndDate','PlannedVelocity','Project','Children'];
                 this.logger.log('_loadIterations', storeConfig);
                 this.iterationHealthStore = Ext.create('Rally.data.wsapi.Store',storeConfig);
 
                 this.iterationHealthStore.load({
-                    scope: this,
-                    callback: function(records, operation, success){
-                        this.logger.log("IterationHealthStore callback: ", success, operation, records);
-                        if (success){
+                        scope: this,
+                        callback: function(records, operation, success){
+                            this.logger.log("IterationHealthStore callback: ", success, operation, records);
+                            if (success){
+                                this.filterIterations(this.iterationHealthStore);
 
-                            if (records.length > 0) {
-                                this._updateDisplay();
+                                var records = this.iterationHealthStore.getRecords();
+                                if (records.length > 0) {
+                                    this._loadCalculationData(records);
+                                    this._updateDisplay();
+                                } else {
+                                    this.down('#display_box').removeAll();
+                                    this.down('#display_box').add({
+                                        xtype:'container',
+                                        html:'0 iterations found for the selected scope.'
+                                    });
+                                    Rally.ui.notify.Notifier.showWarning({message: 'No Iteration Records found for the current project scope.'});
+                                }
                             } else {
-                                this.down('#display_box').removeAll();
-                                this.down('#display_box').add({
-                                    xtype:'container',
-                                    html:'0 iterations found for the selected scope.'
-                                });
-                                Rally.ui.notify.Notifier.showWarning({message: 'No Iteration Records found for the current project scope.'});
+                                this.iterationHealthStore = null;
+                                this.logger.log('IterationHealthStore failure', operation);
+                                Rally.ui.notify.Notifier.showError({message: 'Error loading Iteration Health Store: ' + operation.error.errors.join(',')});
                             }
-                        } else {
-                            this.iterationHealthStore = null;
-                            Rally.ui.notify.Notifier.showError({message: 'Error loading Iteration Health Store: ' + operation.error.errors.join(',')});
                         }
-                    }
                 });
             },
             failure: function(msg){
@@ -1675,6 +1519,56 @@ Ext.define("rally-iteration-health", {
             },
             scope: this
         });
+    },
+    _loadCalculationData: function(iterationRecords){
+
+        var iterationOids = _.map(iterationRecords, function(rec){ return rec.get('ObjectID'); }),
+            previousIterations = this.getSetting('previousIterations');
+
+        this.logger.log('xxx _loadCalculationData', iterationRecords.length, iterationOids, previousIterations);
+        var me = this;
+
+        Deft.Chain.sequence([
+            function() { return me._fetchIterationArtifacts(iterationOids)},
+            function() { return me._fetchIterationCFD(iterationOids)}
+        ], me).then({
+            success: function(results){
+                this.logger.log('Artifact and CFD fetch results', results);
+
+                var calculator = Ext.create('Rally.technicalservices.IterationHealthBulkCalculator',{
+                    iterationRecords: iterationRecords,
+                    artifactRecords: results[0],
+                    doneStates: this.healthConfig.doneStates,
+                    cfdRecords: results[1]
+                });
+
+                _.each(this.iterationHealthStore.getRecords(), function(r){
+                    var oid = r.get('ObjectID');
+
+                    r.set('__previousIterationVelocities',calculator.getPreviousIterationVelocities(r,previousIterations));
+                    r.set('__cfdRecords', calculator.getCFDByIteration(oid));
+                    r.set('__iterationArtifacts', calculator.getArtifactsByIteration(oid))
+                }, this);
+                this._refreshModels(iterationRecords);
+            },
+            failure: function(msg){
+                this.logger.log('Artifact and CFD failure', msg);
+            },
+            scope: this
+        });
+    },
+    _refreshModels: function(records){
+        var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null,
+            use_points = (metric_type == 'points'),
+            skip_zero = this.healthConfig.skipZeroForEstimationRatio,
+            velocity_variation_previous_iteration_count = this.getSetting('previousIterations');
+
+        this.healthConfig.usePoints = use_points;
+
+        _.each(records, function(r){
+            r.calculate(use_points, skip_zero, velocity_variation_previous_iteration_count, this.healthConfig.doneStates);
+        }, this);
+
     },
     _getColumnCfgs: function(){
         var config = this.healthConfig,
@@ -1761,9 +1655,7 @@ Ext.define("rally-iteration-health", {
     },
     _updateDisplay: function(){
         var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null,
-            use_points = (metric_type == 'points'),
-            skip_zero = this.healthConfig.skipZeroForEstimationRatio,
-            velocity_variation_previous_iteration_count = this.getSettings('velocityVariancePreviousIterationCount');
+            use_points = (metric_type == 'points');
 
         this.healthConfig.usePoints = use_points;
 
@@ -1772,15 +1664,106 @@ Ext.define("rally-iteration-health", {
             return;
         }
 
+        this._refreshModels(this.iterationHealthStore.getRecords());
 
-        //Update the store to load supporting records or recalculate with different metric.
-        _.each(this.iterationHealthStore.getRecords(), function(r){
-            r.calculate(use_points, skip_zero, velocity_variation_previous_iteration_count, this.healthConfig.doneStates);
+        this._displayGrid(
+            this.iterationHealthStore,
+            this._getColumnCfgs()
+        );
+    },
+    _showStatus: function(message){
+        if (message) {
+            Rally.ui.notify.Notifier.showStatus({
+                message: message,
+                showForever: true,
+                closable: false,
+                animateShowHide: false
+            });
+        } else {
+            Rally.ui.notify.Notifier.hide();
+        }
+    },
+    _fetchIterationArtifacts: function(oids){
+        this._showStatus("Loading Velocity Data")
+        var config = {
+            models: ['Defect', 'UserStory','DefectSuite','TestSet'],
+            fetch: ['ObjectID','PlanEstimate','ScheduleState','Iteration'],
+            limit: 'Infinity'
+        };
+        return this._fetchChunkedDataByOid("Iteration.ObjectID", oids, 'Rally.data.wsapi.artifact.Store', config);
+    },
+    _fetchIterationCFD: function(oids){
+        this._showStatus("Loading Iteration Cumulative Flow Data");
+        var config = {
+            model: 'IterationCumulativeFlowData',
+            fetch: ['CardCount', 'CardEstimateTotal', 'CreationDate', 'IterationObjectID', 'TaskEstimateTotal', 'CardToDoTotal', 'CardState'],
+            sorters: [{
+                property: 'CreationDate',
+                direction: 'ASC'
+            }],
+            limit: 'Infinity'
+        };
+        return this._fetchChunkedDataByOid("IterationObjectID", oids, 'Rally.data.wsapi.Store', config);
+    },
+
+    _fetchChunkedDataByOid: function(property, oids, storeType, config){
+        var deferred = Ext.create('Deft.Deferred');
+
+        var chunkSize = 25,
+            idx = -1,
+            chunks = [];
+
+        if (oids.length < chunkSize){
+            chunks[0] = _.map(oids, function(oid){ return {property: property, value: oid}; });
+        } else {
+            for(var i=0; i<oids.length; i++){
+                if (i % chunkSize === 0){
+                    idx++;
+                    chunks.push([]);
+                }
+                chunks[idx].push({property: property, value: oids[i]});
+            }
+        }
+
+        var promises = [],
+            me = this;
+        _.each(chunks, function(chunk){
+            config.filters = Rally.data.wsapi.Filter.or(chunk);
+            this.logger.log('_fetchChunkedDataByOid', config, config.filters.toString());
+            var newConfig = Ext.clone(config);
+            promises.push(function() { return me._fetchData(storeType, newConfig); });
         }, this);
 
-        var column_cfgs = this._getColumnCfgs();
+        Deft.Chain.parallel(promises, this).then({
+            success: function(results){
+                this.logger.log('_fetchChunkedDataByOid CALLBACK', results);
+                this._showStatus(null);
+                deferred.resolve(_.flatten(results));
+            },
+            failure: function(msg){
+                deferred.reject(msg);
+            },
+            scope: this
+        });
 
-        this._displayGrid(this.iterationHealthStore, column_cfgs);
+        return deferred;
+    },
+    _fetchData: function(storeType, config){
+        var deferred = Ext.create('Deft.Deferred');
+
+        this.logger.log('_fetchData', storeType, config);
+        Ext.create(storeType,config).load({
+            callback: function(records, operation){
+                this.logger.log('_fetchData CALLBACK', storeType, config, records, operation);
+                if (operation.wasSuccessful()){
+                    deferred.resolve(records);
+                } else {
+                    deferred.resolve('Error fetching data: ' + operation.error.errors.join(','))
+                }
+            },
+            scope: this
+        });
+        return deferred;
     },
     _displayGrid: function(store, column_cfgs){
         this.down('#display_box').removeAll();
@@ -1806,7 +1789,23 @@ Ext.define("rally-iteration-health", {
 
         this.down('#display_box').add(gridConfig);
     },
-    
+    filterIterations: function(store){
+        var  nbf = this.down('#num-iterations'),
+            num_iterations = nbf ? nbf.getValue() : this.defaultNumIterations;
+
+
+        //Get relevant Iteration Records
+        var projectIterationHash = Rally.technicalservices.IterationHealthBulkCalculator.buildSortedIterationByProjectHash(store.getRecords()),
+            iterationOids = [];
+
+        _.each(projectIterationHash, function(recs, project){
+            iterationOids = iterationOids.concat(_.map(recs, function(r){ return r.ObjectID; }).slice(0,num_iterations-1));
+        });
+
+        store.filterBy(function(item){
+            return Ext.Array.contains(iterationOids, item.get('ObjectID'));
+        });
+    },
     getOptions: function() {
         return [
             {
@@ -1902,6 +1901,110 @@ Ext.define("rally-iteration-health", {
         this._hideSettings();
         this.healthConfig.updateSettings(settings);
         this.onSettingsUpdate(settings);
+    }
+});
+
+Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
+
+    /**
+     * configuration data sent into
+     **/
+    artifactRecords: undefined,
+    doneStates: undefined,
+    iterationRecords: undefined,
+    cfdRecords: undefined,
+
+    artifactsByIterationHash: undefined,
+    cfdByIterationHash: undefined,
+
+    constructor: function(config){
+        this.artifactRecords = config.artifactRecords;
+        this.doneStates = config.doneStates || ["Accepted"];
+        this.iterationRecords = config.iterationRecords;
+        this.cfdRecords = config.cfdRecords;
+    },
+    getVelocityByIterationHash: function(){
+        if (!this.velocityByIterationHash){
+            var iterationHash = this.getArtifactsByIterationHash(),
+                doneStates = this.doneStates,
+                velocityHash = {};
+
+            _.each(iterationHash, function(records, iteration){
+                var velocity = 0;
+                _.each(records, function(r){
+                    if (Ext.Array.contains(doneStates, r.ScheduleState)){
+                        velocity += r.PlanEstimate || 0;
+                    }
+                });
+                velocityHash[iteration] = velocity;
+            });
+            this.velocityByIterationHash = velocityHash;
+        }
+
+        return this.velocityByIterationHash;
+    },
+    getPreviousIterationVelocities: function(iterationRecord, numIterations){
+        //Organize iteration by project and then sort in descending order from latest start date
+        var project = iterationRecord.get('Project').ObjectID,
+            projectIterations = _.pluck(this.getSortedIterationsByProjectHash()[project], 'ObjectID');
+
+        var idx = _.indexOf(projectIterations, iterationRecord.get('ObjectID'));
+        if ((idx + numIterations) < projectIterations.length){
+            var velocityIterations = projectIterations.slice(idx + 1, idx + numIterations + 1);
+            return _.map(velocityIterations, function(i) { return this.getVelocityByIterationHash()[i] || 0;}, this);
+        }
+        return [];
+    },
+    getSortedIterationsByProjectHash: function(){
+        if (!this.sortedIterationsByProjectHash){
+            this.sortedIterationsByProject = Rally.technicalservices.IterationHealthBulkCalculator.buildSortedIterationByProjectHash(this.iterationRecords);
+        }
+        return this.sortedIterationsByProject;
+
+    },
+    getCFDByIteration: function(iterationOid){
+        return this.getCFDByIterationHash()[iterationOid] || null;
+    },
+    getCFDByIterationHash: function(){
+        if (!this.cfdByIterationHash){
+            this.cfdByIterationHash = Rally.technicalservices.IterationHealthBulkCalculator._getHashByOid(this.cfdRecords, 'IterationObjectID');
+        }
+        return this.cfdByIterationHash;
+    },
+    getArtifactsByIterationHash: function(){
+        if (!this.artifactsByIterationHash){
+            this.artifactsByIterationHash = Rally.technicalservices.IterationHealthBulkCalculator._getHashByOid(this.artifactRecords, "Iteration","ObjectID");
+        }
+        return this.artifactsByIterationHash;
+    },
+    getArtifactsByIteration: function(iterationOid){
+        return this.getArtifactsByIterationHash()[iterationOid] || null;
+    },
+
+    statics: {
+        buildSortedIterationByProjectHash: function(iterationRecords){
+            var iterationsByProjectHash = Rally.technicalservices.IterationHealthBulkCalculator._getHashByOid(iterationRecords, "Project","ObjectID"),
+                sortedIterationsByProjectHash = {};
+
+            _.each(iterationsByProjectHash, function(iterations, project){
+                sortedIterationsByProjectHash[project] = _.sortBy(iterations, function(i){ return -Date.parse(i.StartDate); });
+            });
+            return sortedIterationsByProjectHash;
+        },
+        _getHashByOid: function(records, oidFieldName, oidAttributeName){
+            var hash = {};
+            for (var i=0; i<records.length; i++){
+                var oid = records[i].get(oidFieldName) || records[i][oidFieldName];
+                if (oidAttributeName){
+                    oid = oid[oidAttributeName];
+                }
+                if (!hash[oid]){
+                    hash[oid] = [];
+                }
+                hash[oid].push(records[i].getData());
+            }
+            return hash;
+        },
     }
 });
 
