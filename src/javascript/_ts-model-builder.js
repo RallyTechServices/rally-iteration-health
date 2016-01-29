@@ -14,7 +14,12 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                 },{
                     name: '__days',
                     convert: function(value, record){
-                        return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true) + 1;
+                        if (record.get('EndDate') && record.get('StartDate')){
+                            return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true) + 1;
+                        } else {
+                            return '--';
+                        }
+
                     }
                 },{
                     name: '__ratioInProgress',
@@ -40,80 +45,44 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                 },{
                     name: '__scopeChurn',
                     defaultValue: -2
+                },{
+                    name: '__velocity',
+                    defaultValue: -2
+                },{
+                    name: '__velocityVariance',
+                    defaultValue: null
+                },{
+                    name: '__currentVelocity',
+                    defaultValue: -2
                 }];
 
                 var new_model = Ext.define(newModelName, {
                     extend: model,
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
-                    calculate: function(usePoints, skipZeroForEstimation, doneStates) {
+                    calculate: function(usePoints, skipZeroForEstimation, previousIterationCount, doneStates) {
                         this.logger.log('calculate', this.get('Name'));
 
                         this.resetDefaults();
 
                         var iteration_oid = this.get('ObjectID');
 
-                        if (this.get('__cfdRecords')){
-                             this._processCFD(this.get('__cfdRecords'), usePoints, doneStates);
-                        } else {
-                            var store = Ext.create('Rally.data.wsapi.Store', {
-                                model: 'IterationCumulativeFlowData',
-                                filters: [{property: 'IterationObjectID', value: iteration_oid}],
-                                fetch: ['CardCount', 'CardEstimateTotal', 'CreationDate', 'IterationObjectID', 'TaskEstimateTotal', 'CardToDoTotal', 'CardState'],
-                                sorters: [{
-                                    property: 'CreationDate',
-                                    direction: 'ASC'
-                                }],
-                                limit: 'Infinity'
-                            });
-
-                            store.load({
-                                scope: this,
-                                callback: function(records, operation, success){
-                                    this.logger.log('Iteration CFD callback', success, this.get('Name'), operation, records, records.length);
-                                    if (success){
-                                        if (records && records.length > 0){
-                                            this.set('__cfdRecords',records);
-                                            this._processCFD(records, usePoints, doneStates);
-                                        }
-                                    } else {
-                                        this.logger.log('Error loading CFD records for Iteration',operation);
-                                        this._setError();
-                                    }
-                                }
-                            });
-
-                            var iteration_name = this.get('Name'),
-                                filters = [{
-                                    property: 'Iteration.Name',
-                                    value: iteration_name
-                                }];
-                            if (skipZeroForEstimation){
-                                filters.push({
-                                    property: 'PlanEstimate',
-                                    operator: '!=',
-                                    value: 0
-                                });
-                            }
-
-                            var artifact_store = Ext.create('Rally.data.wsapi.artifact.Store', {
-                                models: ['Defect', 'UserStory'],
-                                fetch: ['ObjectID','PlanEstimate','ScheduleState','FormattedID'],
-                                filters: filters
-                            });
-                            artifact_store.load({
-                                scope: this,
-                                callback: function(records, operation, success){
-                                    this.logger.log('Iteration artifacts callback: ', success, operation, records.length);
-                                    if (success){
-                                        this._setArtifacts(records);
-                                    } else {
-                                        this.set('__ratioEstimated', 'Error');
-                                    }
-                                }
-                            });
+                        if (this.get('__cfdRecords')) {
+                            this._processCFD(this.get('__cfdRecords'), usePoints, doneStates);
                         }
+
+                        if (this.get('__iterationArtifacts')){
+                            this._setArtifacts(this.get('__iterationArtifacts'), doneStates, iteration_oid);
+                            if (this.get('__previousIterationVelocities') && this.get('EndDate') < new Date()){
+                                var variance = Rally.technicalservices.util.Health.getVelocityVariance(this.get('__currentVelocity'),this.get('__previousIterationVelocities'),previousIterationCount);
+                                this.set('__velocityVariance', variance);
+                            }
+                        }
+
+
                     },
+
+
                     resetDefaults: function(){
                         this.set('__ratioInProgress',-1);
                         this.set('__halfAcceptedRatio', -1);
@@ -123,6 +92,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         this.set('__endIncompletionRatio',-1);
                         this.set('__taskChurn', -2);
                         this.set('__scopeChurn', -2);
+                        this.set('__velocityVariance',null);
 
                     },
                     _setError: function(){
@@ -140,6 +110,8 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         this.set('__scopeChurn',errorString);
                         this.set('__taskChurn',errorString);
 
+                        this.set('__velocityVariance',errorString);
+
                     },
                     _processCFD: function(records, usePoints, doneStates){
 
@@ -148,17 +120,17 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             counter = 0;
                         this.logger.log('_processCFD', records.length, usePoints, doneStates,records);
                         Ext.Array.each(records, function(cf) {
-                            var card_date = cf.get('CreationDate');
+                            var card_date = cf.CreationDate; //cf.get('CreationDate');
 
                             if (this._isValidDate(card_date)){
-                                var card_total = cf.get('CardEstimateTotal') || 0,
-                                    card_state = cf.get('CardState'),
-                                    card_task_estimate = cf.get('TaskEstimateTotal') || 0;
+                                var card_total = cf.CardEstimateTotal || 0,
+                                    card_state = cf.CardState,
+                                    card_task_estimate = cf.TaskEstimateTotal || 0;
 
                                 if (usePoints === false){
-                                    card_total = cf.get('CardCount') || 0;
+                                    card_total = cf.CardCount || 0;
                                 }
-                                this.logger.log('cardcount',this.get('Name'),card_state,card_date, cf.get('CardCount'), cf.get('CardEstimateTotal'),card_task_estimate);
+                                //this.logger.log('cardcount',this.get('Name'),card_state,card_date, cf.CardCount, cf.CardEstimateTotal,card_task_estimate);
                                 if (!daily_totals[card_date]){
                                     daily_totals[card_date] = {};
                                 }
@@ -181,10 +153,10 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             inprogress_state = "In-Progress",
                             days = this.get('__days');
 
-                        this.logger.log('totals',this.get('Name'),daily_totals, daily_task_estimate_totals, doneStates);
+                        //this.logger.log('totals',this.get('Name'),daily_totals, daily_task_estimate_totals, doneStates);
 
                         var avg_daily_in_progress = Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state);
-                        this.logger.log('avg_daily_inprogress',this.get('Name'), avg_daily_in_progress)
+                        //this.logger.log('avg_daily_inprogress',this.get('Name'), avg_daily_in_progress)
                         if (avg_daily_in_progress > 0){
                             this.set('__ratioInProgress',avg_daily_in_progress);
                         }
@@ -205,11 +177,13 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
 
                         var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
-                        this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
+                        //this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
                         if (task_churn !== null){
                             this.set('__taskChurn',task_churn);
                         }
 
+                        var velocity = Rally.technicalservices.util.Health.getVelocity(daily_totals, doneStates);
+                        this.set('__velocity', velocity);
 
                     },
                     /**
@@ -230,22 +204,36 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         }
                         return false;
                     },
-                    _setArtifacts: function(records){
+                    _setArtifacts: function(records, doneStates, thisIterationObjectID){
                        var count_of_estimated_artifacts = 0;
                         this.logger.log('_setArtifacts', records);
+                        var velocity = {},
+                            this_velocity = 0,
+                            this_count = 0;
 
                         Ext.Array.each(records,function(artifact){
-                           var plan_estimate = artifact.get('PlanEstimate');
-                            if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
-                                count_of_estimated_artifacts++;
-                            } else {
-                                this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.get('FormattedID'));
-                            }
+                            var artifact_iteration = artifact.Iteration.ObjectID,
+                                plan_estimate = artifact.PlanEstimate;
+
+                                this_count++;
+                                if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
+                                    count_of_estimated_artifacts++;
+                                    if (Ext.Array.contains(doneStates, artifact.ScheduleState)){
+                                        this_velocity += plan_estimate;
+                                    }
+                                } else {
+                                    this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.FormattedID);
+                                }
                         }, this);
-                        this.logger.log('estimated ratio estimated: ', count_of_estimated_artifacts, ' total: ',  records.length);
-                        if (records && records.length > 0){
-                            this.set('__ratioEstimated',count_of_estimated_artifacts/records.length);
+
+                        this.set('__currentVelocity', this_velocity);  // this uses velocity that is as of now
+
+
+                        this.logger.log('estimated ratio estimated: ', count_of_estimated_artifacts, ' total: ', this_count);
+                        if (this_count > 0){
+                            this.set('__ratioEstimated',count_of_estimated_artifacts/this_count);
                         }
+
                     }
                 });
                 deferred.resolve(new_model);

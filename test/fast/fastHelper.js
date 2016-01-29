@@ -16,7 +16,8 @@ Ext.define('mockStory',{
         {name:'Name',type:'string'},
         {name:'PlanEstimate',type:'int'},
         {name:'id',type:'int',convert:useObjectID},
-        {name:'ScheduleState',type:'string',defaultValue:'Defined'}
+        {name:'ScheduleState',type:'string',defaultValue:'Defined'},
+        {name:'Iteration', type: 'auto'}
     ]
 });
 
@@ -27,6 +28,7 @@ Ext.define('mockIteration',{
         {name:'Name',type:'string'},
         {name:'StartDate',type:'auto'},
         {name:'EndDate',type:'auto'},
+        {name: 'Project', type: 'auto'},
         {name:'id',type:'int',convert:useObjectID}
     ]
 });

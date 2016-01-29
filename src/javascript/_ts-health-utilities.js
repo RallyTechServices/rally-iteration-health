@@ -122,6 +122,11 @@ Ext.define('Rally.technicalservices.util.Health',{
         });
         return hash;
     },
+    getVelocity:function(health_hash, done_states){
+        var done_hash = Rally.technicalservices.util.Health.getDoneStatesHash(health_hash, done_states);
+        var days = _.sortBy(_.keys(done_hash), function(date){return Date.parse(date)});
+        return done_hash[days[days.length-1]] || 0;
+    },
     getHalfAcceptanceRatio:function(health_hash, done_states, num_days_in_iteration){
 
         var done_hash = Rally.technicalservices.util.Health.getDoneStatesHash(health_hash, done_states),
@@ -187,6 +192,20 @@ Ext.define('Rally.technicalservices.util.Health',{
             }
         return {CompletionRatio: inverse_ratio, IncompletionRatio: ratio };
 
+    },
+    getVelocityVariance: function(velocity, previousVelocities, minNumberPreviousVelocities){
+        console.log('xxxgetVelocityVariance',velocity, previousVelocities,minNumberPreviousVelocities)
+        if (previousVelocities && previousVelocities.length >= minNumberPreviousVelocities){
+            var average_velocity = Ext.Array.mean(previousVelocities),
+                velocity_variance = 0;
+
+            console.log('xxxgetVelocityVariance average', average_velocity);
+            if (average_velocity > 0){
+                velocity_variance = Number(velocity/average_velocity - 1);
+                return velocity_variance;
+            }
+        }
+        return null;
     },
     /**
      * Given a hash of hashes structured as:
