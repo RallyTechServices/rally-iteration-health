@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Jan 29 2016 16:04:12 GMT-0700 (MST) -->
+    <!--  Build Date: Tue Feb 02 2016 09:20:09 GMT-0700 (MST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Jan 29 2016 16:04:12 GMT-0700 (MST)";
-        var CHECKSUM = 140422607289;
+        var APP_BUILD_DATE = "Tue Feb 02 2016 09:20:09 GMT-0700 (MST)";
+        var CHECKSUM = 140405723003;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -263,7 +263,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "reduces context switching and helps team focus on the most important items to reach acceptance."
         },
         __halfAcceptedRatio: {
-            display: true,
+            display: false,
             range: { green: 0, yellow: 65, red: 90, direction: 'green,yellow,red'},
             displayName: 'Acceptance Rate Score',
             tooltip: "<h1>Description</h1>" +
@@ -600,7 +600,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             if ( value === null ) {
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
-                return "No Data";
+                return "N/A";
             }
             var percent = parseInt( 100 * value, 10 );
             var text = percent + "%";
@@ -871,12 +871,10 @@ Ext.define('Rally.technicalservices.util.Health',{
 
     },
     getVelocityVariance: function(velocity, previousVelocities, minNumberPreviousVelocities){
-        console.log('xxxgetVelocityVariance',velocity, previousVelocities,minNumberPreviousVelocities)
         if (previousVelocities && previousVelocities.length >= minNumberPreviousVelocities){
             var average_velocity = Ext.Array.mean(previousVelocities),
                 velocity_variance = 0;
 
-            console.log('xxxgetVelocityVariance average', average_velocity);
             if (average_velocity > 0){
                 velocity_variance = Number(velocity/average_velocity - 1);
                 return velocity_variance;
@@ -1306,9 +1304,9 @@ Ext.define("rally-iteration-health", {
             showDateForHalfAcceptanceRatio:  true,
             hideTaskMovementColumn: false,
             useSavedRanges: false,
-            showVelocityVariation: true,
+            showVelocityVariation: false,
             previousIterations: 3,
-            allowGroupByLeafTeam: true
+            allowGroupByLeafTeam: false
         }
     },
     defaultNumIterations: 20,
@@ -1525,7 +1523,7 @@ Ext.define("rally-iteration-health", {
         var iterationOids = _.map(iterationRecords, function(rec){ return rec.get('ObjectID'); }),
             previousIterations = this.getSetting('previousIterations');
 
-        this.logger.log('xxx _loadCalculationData', iterationRecords.length, iterationOids, previousIterations);
+        this.logger.log('_loadCalculationData', iterationRecords.length, iterationOids, previousIterations);
         var me = this;
 
         Deft.Chain.sequence([
@@ -1684,7 +1682,7 @@ Ext.define("rally-iteration-health", {
         }
     },
     _fetchIterationArtifacts: function(oids){
-        this._showStatus("Loading Velocity Data")
+        this._showStatus("Loading Iteration Artifact Data")
         var config = {
             models: ['Defect', 'UserStory','DefectSuite','TestSet'],
             fetch: ['ObjectID','PlanEstimate','ScheduleState','Iteration'],
@@ -1869,6 +1867,14 @@ Ext.define("rally-iteration-health", {
             fieldLabel: '',
             margin: '0 0 25 200',
             boxLabel: 'Show ' + velocity_variance_name
+        });
+        settings.push({
+            name: 'allowGroupByLeafTeam',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: '0 0 25 200',
+            boxLabel: 'Allow Group by Leaf Team'
         });
         return settings;
     },

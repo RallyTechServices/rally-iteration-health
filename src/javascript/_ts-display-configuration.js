@@ -85,7 +85,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "reduces context switching and helps team focus on the most important items to reach acceptance."
         },
         __halfAcceptedRatio: {
-            display: true,
+            display: false,
             range: { green: 0, yellow: 65, red: 90, direction: 'green,yellow,red'},
             displayName: 'Acceptance Rate Score',
             tooltip: "<h1>Description</h1>" +
@@ -422,7 +422,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
             if ( value === null ) {
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
-                return "No Data";
+                return "N/A";
             }
             var percent = parseInt( 100 * value, 10 );
             var text = percent + "%";
