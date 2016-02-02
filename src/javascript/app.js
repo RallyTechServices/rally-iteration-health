@@ -8,9 +8,9 @@ Ext.define("rally-iteration-health", {
             showDateForHalfAcceptanceRatio:  true,
             hideTaskMovementColumn: false,
             useSavedRanges: false,
-            showVelocityVariation: true,
+            showVelocityVariation: false,
             previousIterations: 3,
-            allowGroupByLeafTeam: true
+            allowGroupByLeafTeam: false
         }
     },
     defaultNumIterations: 20,
@@ -571,6 +571,14 @@ Ext.define("rally-iteration-health", {
             fieldLabel: '',
             margin: '0 0 25 200',
             boxLabel: 'Show ' + velocity_variance_name
+        });
+        settings.push({
+            name: 'allowGroupByLeafTeam',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: '0 0 25 200',
+            boxLabel: 'Allow Group by Leaf Team'
         });
         return settings;
     },
