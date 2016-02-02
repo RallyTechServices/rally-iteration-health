@@ -227,7 +227,7 @@ Ext.define("rally-iteration-health", {
         var iterationOids = _.map(iterationRecords, function(rec){ return rec.get('ObjectID'); }),
             previousIterations = this.getSetting('previousIterations');
 
-        this.logger.log('xxx _loadCalculationData', iterationRecords.length, iterationOids, previousIterations);
+        this.logger.log('_loadCalculationData', iterationRecords.length, iterationOids, previousIterations);
         var me = this;
 
         Deft.Chain.sequence([
@@ -386,7 +386,7 @@ Ext.define("rally-iteration-health", {
         }
     },
     _fetchIterationArtifacts: function(oids){
-        this._showStatus("Loading Velocity Data")
+        this._showStatus("Loading Iteration Artifact Data")
         var config = {
             models: ['Defect', 'UserStory','DefectSuite','TestSet'],
             fetch: ['ObjectID','PlanEstimate','ScheduleState','Iteration'],
