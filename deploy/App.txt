@@ -2,15 +2,15 @@
 <html>
 <head>
     <title>Rally Iteration Health</title>
-    <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue Feb 02 2016 09:20:09 GMT-0700 (MST) -->
+    <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
+    <!--  Build Date: Mon Apr 18 2016 16:22:13 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Feb 02 2016 09:20:09 GMT-0700 (MST)";
-        var CHECKSUM = 140405723003;
+        var APP_BUILD_DATE = "Mon Apr 18 2016 16:22:13 GMT-0700 (PDT)";
+        var CHECKSUM = 142141039107;
     </script>
     
-    <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
 
     <script type="text/javascript">
         Rally.onReady(function() {
@@ -1310,10 +1310,15 @@ Ext.define("rally-iteration-health", {
         }
     },
     defaultNumIterations: 20,
+    
+    layout: 'border',
+    
     items: [
-        {xtype:'container',itemId:'settings_box'},
-        {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}},
-        {xtype:'container',itemId:'display_box'}
+        {xtype:'container',region: 'north', items:[
+            { xtype:'container',itemId:'settings_box'},
+            {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}}
+        ]},
+        {xtype:'container',itemId:'display_box', region: 'center', layout: { type:'fit'}}
     ],
     
     launch: function() {
@@ -1345,13 +1350,13 @@ Ext.define("rally-iteration-health", {
         var promises = [Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]),
                 Rally.technicalservices.WsapiToolbox.fetchDoneStates()];
 
-            Deft.Promise.all(promises).then({
+        Deft.Promise.all(promises).then({
             scope: this,
             success: function(results){
                 this.down('#criteria_box').removeAll();
                 this.logger.log('_initApp child project count:', results[0], 'Schedule States', results[1]);
                 this.healthConfig.doneStates = results[1];
-                if (results[0] == 0){
+                if (results[0] === 0){
                     this._initForLeafProject(this._fetchIterationsForLeafTeam);
                 } else if (this.getSetting('allowGroupByLeafTeam') === true) {
                     this._initForLeafProject(this._fetchIterationsForMultipleTeams);
@@ -1447,11 +1452,16 @@ Ext.define("rally-iteration-health", {
 
          });
     },
+    
     _fetchIterationsForLeafTeam: function(nbf){
-
+        this.logger.log('_fetchIterationsForLeafTeam',nbf);
+        
         var today_iso = Rally.util.DateTime.toIsoString(new Date()),
             num_iterations = nbf ? nbf.getValue() : this.defaultNumIterations;
 
+        this.logger.log('Number of Iterations:', num_iterations);
+        this.logger.log('Today ISO:', today_iso);
+        
         this._loadIterations({
             limit: num_iterations,
             pageSize: num_iterations,
@@ -1487,7 +1497,7 @@ Ext.define("rally-iteration-health", {
                 this.iterationHealthStore.load({
                         scope: this,
                         callback: function(records, operation, success){
-                            this.logger.log("IterationHealthStore callback: ", success, operation, records);
+                            this.logger.log("After IterationHealthStore load: ", success, operation, records);
                             if (success){
                                 this.filterIterations(this.iterationHealthStore);
 
@@ -1659,6 +1669,7 @@ Ext.define("rally-iteration-health", {
 
         this.logger.log('_updateDisplay', this.iterationHealthStore, metric_type, use_points);
         if (!this.iterationHealthStore || metric_type == null){
+            this.logger.log("Store not yet created or metric type not selected");
             return;
         }
 
@@ -2061,6 +2072,10 @@ Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
     font-size: 14px;
     color: #888;
     float: right;
+}
+
+.x-border-layout-ct {
+    background-color: #fff;
 }
 
 

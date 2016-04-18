@@ -14,10 +14,15 @@ Ext.define("rally-iteration-health", {
         }
     },
     defaultNumIterations: 20,
+    
+    layout: 'border',
+    
     items: [
-        {xtype:'container',itemId:'settings_box'},
-        {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}},
-        {xtype:'container',itemId:'display_box'}
+        {xtype:'container',region: 'north', items:[
+            { xtype:'container',itemId:'settings_box'},
+            {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}}
+        ]},
+        {xtype:'container',itemId:'display_box', region: 'center', layout: { type:'fit'}}
     ],
     
     launch: function() {
@@ -49,13 +54,13 @@ Ext.define("rally-iteration-health", {
         var promises = [Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]),
                 Rally.technicalservices.WsapiToolbox.fetchDoneStates()];
 
-            Deft.Promise.all(promises).then({
+        Deft.Promise.all(promises).then({
             scope: this,
             success: function(results){
                 this.down('#criteria_box').removeAll();
                 this.logger.log('_initApp child project count:', results[0], 'Schedule States', results[1]);
                 this.healthConfig.doneStates = results[1];
-                if (results[0] == 0){
+                if (results[0] === 0){
                     this._initForLeafProject(this._fetchIterationsForLeafTeam);
                 } else if (this.getSetting('allowGroupByLeafTeam') === true) {
                     this._initForLeafProject(this._fetchIterationsForMultipleTeams);
@@ -151,11 +156,16 @@ Ext.define("rally-iteration-health", {
 
          });
     },
+    
     _fetchIterationsForLeafTeam: function(nbf){
-
+        this.logger.log('_fetchIterationsForLeafTeam',nbf);
+        
         var today_iso = Rally.util.DateTime.toIsoString(new Date()),
             num_iterations = nbf ? nbf.getValue() : this.defaultNumIterations;
 
+        this.logger.log('Number of Iterations:', num_iterations);
+        this.logger.log('Today ISO:', today_iso);
+        
         this._loadIterations({
             limit: num_iterations,
             pageSize: num_iterations,
@@ -191,7 +201,7 @@ Ext.define("rally-iteration-health", {
                 this.iterationHealthStore.load({
                         scope: this,
                         callback: function(records, operation, success){
-                            this.logger.log("IterationHealthStore callback: ", success, operation, records);
+                            this.logger.log("After IterationHealthStore load: ", success, operation, records);
                             if (success){
                                 this.filterIterations(this.iterationHealthStore);
 
@@ -363,6 +373,7 @@ Ext.define("rally-iteration-health", {
 
         this.logger.log('_updateDisplay', this.iterationHealthStore, metric_type, use_points);
         if (!this.iterationHealthStore || metric_type == null){
+            this.logger.log("Store not yet created or metric type not selected");
             return;
         }
 
