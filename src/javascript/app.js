@@ -243,7 +243,8 @@ Ext.define("rally-iteration-health", {
 
         Deft.Chain.sequence([
             function() { return me._fetchIterationArtifacts(iterationOids)},
-            function() { return me._fetchIterationCFD(iterationOids)}
+            function() { return me._fetchIterationCFD(iterationOids)},
+            function() { return me._fetchStateChangesFromLookback(iterationOids); }
         ], me).then({
             success: function(results){
                 this.logger.log('Artifact and CFD fetch results', results);
@@ -252,7 +253,9 @@ Ext.define("rally-iteration-health", {
                     iterationRecords: iterationRecords,
                     artifactRecords: results[0],
                     doneStates: this.healthConfig.doneStates,
-                    cfdRecords: results[1]
+                    cfdRecords: results[1],
+                    lookbackStateChanges: results[2],
+                    showIterationCycleTime: this.getSetting('showIterationCycleTime')
                 });
 
                 _.each(this.iterationHealthStore.getRecords(), function(r){
@@ -422,6 +425,26 @@ Ext.define("rally-iteration-health", {
         return this._fetchChunkedDataByOid("IterationObjectID", oids, 'Rally.data.wsapi.Store', config);
     },
 
+    _fetchStateChangesFromLookback: function(iteration_oids) {
+        if ( ! this._isNotOnPrem() ) {
+            return [];
+        }
+        
+        var config = {
+            fetch: ['Name', 'ScheduleState','_PreviousValues','_PreviousValues.ScheduleState','Iteration'],
+            filters: [
+                {property:'Iteration',operator:'in',value:iteration_oids},
+                {property:'_PreviousValues.ScheduleState',operator:'exists',value: true}
+            ],
+            hydrate: ['ScheduleState','_PreviousValues.ScheduleState','Iteration']
+        };
+        var lookback_store_class = "Rally.data.lookback.SnapshotStore";
+        
+        // TODO: decide what to do if the story was moved to in progress in some other iteration
+        
+        return this._fetchData(lookback_store_class, config);
+    },
+
     _fetchChunkedDataByOid: function(property, oids, storeType, config){
         var deferred = Ext.create('Deft.Deferred');
 
@@ -561,13 +584,15 @@ Ext.define("rally-iteration-health", {
             velocity_variance_name = this.healthConfig.displaySettings.__velocityVariance.displayName;
         }
 
+        var check_box_margins = '0 0 10 20';
+        
         if (display_half_accepted){
             settings.push({
                     name: 'showDateForHalfAcceptanceRatio',
                     xtype: 'rallycheckboxfield',
                     boxLabelAlign: 'after',
                     fieldLabel: '',
-                    margin: '0 0 25 200',
+                    margin: check_box_margins,
                     boxLabel: 'Show date for ' + half_accepted_ratio_name
                 });
         }
@@ -576,7 +601,7 @@ Ext.define("rally-iteration-health", {
             xtype: 'rallycheckboxfield',
             boxLabelAlign: 'after',
             fieldLabel: '',
-            margin: '0 0 25 200',
+            margin: check_box_margins,
             boxLabel: 'Hide ' + task_churn_name
         });
         settings.push({
@@ -584,16 +609,34 @@ Ext.define("rally-iteration-health", {
             xtype: 'rallycheckboxfield',
             boxLabelAlign: 'after',
             fieldLabel: '',
-            margin: '0 0 25 200',
+            margin: check_box_margins,
             boxLabel: 'Show ' + velocity_variance_name
         });
+        
+        var cycle_time_choices = [
+            {Name:'No', Value:false},
+            {Name:'In Progress to Accepted', Value:'inprogress-to-accepted'}
+        ];
+
+        /* requires lookback */
+        if ( this._isNotOnPrem() ) {
+            cycle_time_choices.push({Name:'In Progress to Completed', Value:'inprogress-to-completed'});
+        }
+        
         settings.push({
             name: 'showIterationCycleTime',
-            xtype: 'rallycheckboxfield',
-            boxLabelAlign: 'after',
-            fieldLabel: '',
-            margin: '0 0 25 200',
-            boxLabel: 'Show Iteration Cycle Time' 
+            xtype: 'rallycombobox',
+            fieldLabel: 'Show Cycle Time',
+            labelWidth: 100,
+            labelAlign: 'left',
+            minWidth: 200,
+            margin: check_box_margins,
+            displayField:'Name',
+            valueField: 'Value',
+            store: Ext.create('Rally.data.custom.Store',{
+                data: cycle_time_choices
+            }),
+            readyEvent: 'ready'
         });
         
         settings.push({
@@ -601,7 +644,7 @@ Ext.define("rally-iteration-health", {
             xtype: 'rallycheckboxfield',
             boxLabelAlign: 'after',
             fieldLabel: '',
-            margin: '0 0 25 200',
+            margin: check_box_margins,
             boxLabel: 'Allow Group by Leaf Team'
         });
         return settings;
@@ -630,6 +673,12 @@ Ext.define("rally-iteration-health", {
         return this._appSettings;
     },
 
+    _isNotOnPrem: function() {
+        return ( this.getContext().getGlobalContext().context 
+            && this.getContext().getGlobalContext().context.stack 
+            && ! this.getContext().getGlobalContext().context.stack.isOnPrem );
+    },
+    
     _onSettingsSaved: function(settings){
         Ext.apply(this.settings, settings);
         this._hideSettings();

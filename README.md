@@ -72,6 +72,13 @@ No Data means that there were never any estimated tasks in the sprint.  A task c
 ###Velocity Variance
 This shows the % variance of the velocity from the average of the past 3 sprints. If there is only data from less than that, then that data will be used.  Otherwise the velocity variance will show as No Data.  The velocities used in this calculation is the current velocity, which is calculated by adding all stories associated with the iteration as of the current date.
 
+###Cycle Time
+This shows the average cycle time of stories in the sprint. This can be configured from the App Settings... menu.  There are up to three options:
+
+  * **No** : Do not show cycle time
+  * **In Progress to Accepted** : Calculated by counting the hours from the InProgressDate field to the AcceptedDate field and dividing by 24
+  * **In Progress to Completed** : (Only available/chooseable in SAAS) Calculated using lookback to count the hours from first transition to
+      In-Progress (or higher) to the last transition to Completed (or higher).  Does NOT consider if moves left of In-Progress after first hit.
 
 ## Building this code
 

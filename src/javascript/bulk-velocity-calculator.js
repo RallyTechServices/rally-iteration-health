@@ -10,13 +10,103 @@ Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
 
     artifactsByIterationHash: undefined,
     cfdByIterationHash: undefined,
+    
+    // for getting cycle time other than from in progress to accepted
+    lookbackStateChanges: [],
+    showIterationCycleTime: false,
 
     constructor: function(config){
         this.artifactRecords = config.artifactRecords;
         this.doneStates = config.doneStates || ["Accepted"];
         this.iterationRecords = config.iterationRecords;
         this.cfdRecords = config.cfdRecords;
+        this.lookbackStateChanges = config.lookbackStateChanges || [];
+        this.showIterationCycleTime = config.showIterationCycleTime;
+        
+        this._setStateChangesInArtifacts(this.lookbackStateChanges);
+        this._setCycleTimes(this.artifactRecords, this.showIterationCycleTime);
     },
+    
+    _setCycleTimes: function(records, showIterationCycleTime) {
+        if ( !showIterationCycleTime ) { return; }
+        
+        Ext.Array.each(records,function(artifact){            
+            var start_date = artifact.get('InProgressDate'),
+                end_date = artifact.get('AcceptedDate');
+            if ( showIterationCycleTime == "inprogress-to-completed") {
+                start_date = artifact.get("__In-Progress_first");
+                end_date   = artifact.get("__Completed_last");
+                if ( Ext.isString(start_date) ) {
+                    start_date = Rally.util.DateTime.fromIsoString(start_date);
+                }
+                if ( Ext.isString(end_date) ) {
+                    end_date = Rally.util.DateTime.fromIsoString(end_date);
+                }
+            }
+            
+            var iteration = artifact.get('Iteration');
+            iteration.__cycleTime = -2;
+            
+            if ( !Ext.isEmpty(start_date) && !Ext.isEmpty(end_date) ) {
+                iteration.__cycleTime = Rally.util.DateTime.getDifference(end_date,start_date, 'hour');
+            }
+            
+            artifact.set('Iteration', iteration);
+        });
+    },
+    
+    _setStateChangesInArtifacts: function(lookbackStateChanges) {
+        if ( lookbackStateChanges.length == [] ) {
+            return;
+        }
+        
+        var artifacts_by_oid = {};
+        Ext.Array.each(this.artifactRecords, function(record){
+            var oid = record.get('ObjectID');
+            artifacts_by_oid[oid] = record;
+        });
+        
+        Ext.Array.each(lookbackStateChanges, function(snapshot){
+            var oid = snapshot.get('ObjectID');
+            if ( Ext.isEmpty(artifacts_by_oid[oid])) { return; }
+            var artifact = artifacts_by_oid[oid];
+            var old_state = snapshot.get('_PreviousValues.ScheduleState');
+            var new_state = snapshot.get('ScheduleState');
+
+            this._setTransition(artifact, new_state, old_state, snapshot.get('_ValidFrom'));
+            
+        },this);
+    },
+    
+    _setTransition: function(artifact, new_state, old_state, change_date) {
+        var state_array = Ext.Array.push(["Defined","In-Progress","Completed"], this.doneStates);
+        
+        var in_index = Ext.Array.indexOf(state_array, new_state);
+        if ( in_index == -1 ) { return; }
+        var out_index = Ext.Array.indexOf(state_array, old_state);
+        
+        var states_of_interest = [ new_state ];
+        
+        // in situation where we came from the left and skipped a state
+        // want to set interim states
+        if ( out_index < in_index ) {
+            states_of_interest = Ext.Array.slice(state_array, out_index+1, in_index+1);
+        }
+        
+        //console.log('interesting states:', states_of_interest, new_state);
+        
+        Ext.Array.each(states_of_interest, function(state){
+            var first_transition_name = "__" + state + "_first";
+            var last_transition_name =  "__" + state + "_last";
+            
+            if ( Ext.isEmpty(artifact.get(first_transition_name)) ) {
+                artifact.set(first_transition_name, change_date);
+            }
+//            
+            artifact.set(last_transition_name, change_date);
+        });
+    },
+    
     getVelocityByIterationHash: function(){
         if (!this.velocityByIterationHash){
             var iterationHash = this.getArtifactsByIterationHash(),
@@ -98,6 +188,6 @@ Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
                 hash[oid].push(records[i].getData());
             }
             return hash;
-        },
+        }
     }
 });

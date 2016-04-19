@@ -517,8 +517,22 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             this.displaySettings.__velocityVariance.display = false;
         }
         
-        if (settings.showIterationCycleTime === true || settings.showIterationCycleTime === "true"){
+        
+        if (settings.showIterationCycleTime != false && settings.showIterationCycleTime != "false" ){
             this.displaySettings.__cycleTime.display = true;
+            if ( settings.showIterationCycleTime == "inprogress-to-accepted" ) {
+                this.displaySettings.__cycleTime.tooltip = "<h1>Description</h1>" +
+                    "Cycle Time in this report is the average number of days betweens starting and finishing a story in the sprint." +
+                    "<h1>How it is calculated</h1>" +
+                    "The displayed result is the number of days between the In Progress Date and the Accepted Date."
+            } else {
+                this.displaySettings.__cycleTime.tooltip = "<h1>Description</h1>" +
+                    "Cycle Time in this report is the average number of days betweens starting and finishing a story in the sprint." +
+                    "<h1>How it is calculated</h1>" +
+                    "The displayed result is the number of days between the first time an artifact went into In-Progress and the last " +
+                    "time it went into Completed."
+            }
+        
         } else {
             this.displaySettings.__cycleTime.display = false;
         }

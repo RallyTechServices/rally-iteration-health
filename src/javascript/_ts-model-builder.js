@@ -220,24 +220,25 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             cycle_times = [];
 
                         Ext.Array.each(records,function(artifact){
-                            var artifact_iteration = artifact.Iteration.ObjectID,
-                                plan_estimate = artifact.PlanEstimate,
-                                start_date = artifact.InProgressDate,
-                                end_date = artifact.AcceptedDate;
+                            var artifact_iteration = artifact.Iteration,
+                                plan_estimate = artifact.PlanEstimate;
 
-                                this_count++;
-                                if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
-                                    count_of_estimated_artifacts++;
-                                    if (Ext.Array.contains(doneStates, artifact.ScheduleState)){
-                                        this_velocity += plan_estimate;
-                                    }
-                                } else {
-                                    this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.FormattedID);
+                            this_count++;
+                            if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
+                                count_of_estimated_artifacts++;
+                                if (Ext.Array.contains(doneStates, artifact.ScheduleState)){
+                                    this_velocity += plan_estimate;
                                 }
-                                
-                                if ( !Ext.isEmpty(start_date) && !Ext.isEmpty(end_date) ) {
-                                    cycle_times.push(Rally.util.DateTime.getDifference(end_date,start_date, 'hour') );
-                                }
+                            } else {
+                                this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.FormattedID);
+                            }
+                            
+                            var cycleTime = artifact_iteration.__cycleTime;
+                            
+                            if ( !Ext.isEmpty(cycleTime) && cycleTime != -2 ) {
+                                cycle_times.push(cycleTime);
+                            }
+
                         }, this);
 
                         this.set('__currentVelocity', this_velocity);  // this uses velocity that is as of now
