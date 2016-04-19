@@ -442,12 +442,11 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return text;
         },
         __cycleTime: function(value, metaData, record) {
-            // NOTE: cycle time is stored in hours
             if ( value === null || value == -2) {
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
                 return "N/A";
             }
-            var days = Ext.util.Format.number( value / 24, "0.##" );
+            var days = Ext.util.Format.number( value, "0.##" );
             
             var ranges = this.displaySettings.__cycleTime.range;
 

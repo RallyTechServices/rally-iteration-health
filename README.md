@@ -76,8 +76,8 @@ This shows the % variance of the velocity from the average of the past 3 sprints
 This shows the average cycle time of stories in the sprint. This can be configured from the App Settings... menu.  There are up to three options:
 
   * **No** : Do not show cycle time
-  * **In Progress to Accepted** : Calculated by counting the hours from the InProgressDate field to the AcceptedDate field and dividing by 24
-  * **In Progress to Completed** : (Only available/chooseable in SAAS) Calculated using lookback to count the hours from first transition to
+  * **In Progress to Accepted** : Calculated by counting the hours from the InProgressDate field to the AcceptedDate field
+  * **In Progress to Completed** : (Only available/selectable in SAAS) Calculated using lookback to count the hours from first transition to
       In-Progress (or higher) to the last transition to Completed (or higher).  Does NOT consider if moves left of In-Progress after first hit.
 
 ## Building this code

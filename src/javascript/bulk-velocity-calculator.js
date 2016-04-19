@@ -30,7 +30,7 @@ Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
     _setCycleTimes: function(records, showIterationCycleTime) {
         if ( !showIterationCycleTime ) { return; }
         
-        Ext.Array.each(records,function(artifact){            
+        Ext.Array.each(records,function(artifact){ 
             var start_date = artifact.get('InProgressDate'),
                 end_date = artifact.get('AcceptedDate');
             if ( showIterationCycleTime == "inprogress-to-completed") {
@@ -44,13 +44,15 @@ Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
                 }
             }
             
-            var iteration = artifact.get('Iteration');
-            iteration.__cycleTime = -2;
+            var iteration = Ext.clone( artifact.get('Iteration') );
+            var delta = -2;
             
             if ( !Ext.isEmpty(start_date) && !Ext.isEmpty(end_date) ) {
-                iteration.__cycleTime = Rally.util.DateTime.getDifference(end_date,start_date, 'hour');
+                delta = Rally.technicalservices.util.Health.daysBetween(end_date, start_date, true);
             }
-            
+
+            iteration.__cycleTime = delta;
+
             artifact.set('Iteration', iteration);
         });
     },

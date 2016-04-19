@@ -235,12 +235,15 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                             
                             var cycleTime = artifact_iteration.__cycleTime;
                             
+                            this.logger.log('++', cycleTime, artifact_iteration);
+                            
                             if ( !Ext.isEmpty(cycleTime) && cycleTime != -2 ) {
                                 cycle_times.push(cycleTime);
                             }
 
                         }, this);
 
+                        
                         this.set('__currentVelocity', this_velocity);  // this uses velocity that is as of now
 
                         this.logger.log('cycle time array:', cycle_times);
