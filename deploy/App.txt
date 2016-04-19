@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Mon Apr 18 2016 17:23:48 GMT-0700 (PDT) -->
+    <!--  Build Date: Mon Apr 18 2016 17:27:11 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Apr 18 2016 17:23:48 GMT-0700 (PDT)";
-        var CHECKSUM = 150658264777;
+        var APP_BUILD_DATE = "Mon Apr 18 2016 17:27:11 GMT-0700 (PDT)";
+        var CHECKSUM = 150662701483;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -625,7 +625,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
                 return "N/A";
             }
-            var days = Ext.util.Format.number( value / 8, "0.##" );
+            var days = Ext.util.Format.number( value / 24, "0.##" );
             
             var ranges = this.displaySettings.__cycleTime.range;
 

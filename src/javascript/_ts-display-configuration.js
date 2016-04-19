@@ -447,7 +447,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
                 return "N/A";
             }
-            var days = Ext.util.Format.number( value / 8, "0.##" );
+            var days = Ext.util.Format.number( value / 24, "0.##" );
             
             var ranges = this.displaySettings.__cycleTime.range;
 
