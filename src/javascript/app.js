@@ -10,7 +10,8 @@ Ext.define("rally-iteration-health", {
             useSavedRanges: false,
             showVelocityVariation: false,
             previousIterations: 3,
-            allowGroupByLeafTeam: false
+            allowGroupByLeafTeam: false,
+            showIterationCycleTime: false
         }
     },
     defaultNumIterations: 20,
@@ -285,6 +286,8 @@ Ext.define("rally-iteration-health", {
     _getColumnCfgs: function(){
         var config = this.healthConfig,
             column_cfgs = [];
+            
+        this.logger.log("_getColumnCfgs", config, config.displaySettings);
 
         _.each(config.displaySettings, function(col, key){
             if (col.display){
@@ -305,7 +308,7 @@ Ext.define("rally-iteration-health", {
                 column_cfgs.push(cfg);
             }
         }, this);
-        this.logger.log('_getColumnCfgs', column_cfgs);
+        this.logger.log('column_cfgs', column_cfgs);
         return column_cfgs;
     },
     _showColumnDescription: function(ct, column, evt, target_element, eOpts){
@@ -400,7 +403,7 @@ Ext.define("rally-iteration-health", {
         this._showStatus("Loading Iteration Artifact Data")
         var config = {
             models: ['Defect', 'UserStory','DefectSuite','TestSet'],
-            fetch: ['ObjectID','PlanEstimate','ScheduleState','Iteration'],
+            fetch: ['ObjectID','PlanEstimate','ScheduleState','Iteration','AcceptedDate','InProgressDate'],
             limit: 'Infinity'
         };
         return this._fetchChunkedDataByOid("Iteration.ObjectID", oids, 'Rally.data.wsapi.artifact.Store', config);
@@ -542,6 +545,7 @@ Ext.define("rally-iteration-health", {
         Ext.apply(this, settings);
         this.launch();
     },
+    
     getSettingsFields: function() {
 
         var settings = [],
@@ -583,6 +587,15 @@ Ext.define("rally-iteration-health", {
             margin: '0 0 25 200',
             boxLabel: 'Show ' + velocity_variance_name
         });
+        settings.push({
+            name: 'showIterationCycleTime',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: '0 0 25 200',
+            boxLabel: 'Show Iteration Cycle Time' 
+        });
+        
         settings.push({
             name: 'allowGroupByLeafTeam',
             xtype: 'rallycheckboxfield',

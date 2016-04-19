@@ -66,7 +66,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "catch this early in an iteration so other charts/graphs etc are useful for teams.  A good " +
             "practice is to have a ready backlog as and entrance criteria to an iteration planning session, " +
             "a ready backlog means three things, sized, ranked, and stories are elaborated sufficiently with " +
-            "acceptance criteria to enable conversation and confirmation during planning.",
+            "acceptance criteria to enable conversation and confirmation during planning."
         },
         __ratioInProgress: {
             display: true,
@@ -145,7 +145,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "count of the work items, not the plan estimate of the work items." +
             "<h1>Coaching Tip</h1>" +
             "A high percentage here would mean that there is a high degree of daily WIP on average.  Keeping WIP small, " +
-            "reduces context switching and helps team focus on the most important items to reach acceptance.",
+            "reduces context switching and helps team focus on the most important items to reach acceptance."
         },
         __scopeChurn: {
             display: true,
@@ -168,7 +168,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "<h1>How it is calculated</h1>" +
             "The number of estimated hours for the tasks scheduled in the iteration on the last day are subtracted from the total estimated " +
             "hours of tasks scheduled on the next-to-last day, then divided by the next-to-last-day totals to create a percentage.  Note " +
-            "that this is calculated from the <b>estimates</b> of all the tasks, not the hours remaining to-do",
+            "that this is calculated from the <b>estimates</b> of all the tasks, not the hours remaining to-do"
         },
         __velocityVariance: {
             display: true,
@@ -178,8 +178,17 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "Velocity Variance is the % variance of the velocity from the average of a number of previous sprints (e.g. 3). If there is" +
             " only data from less than that number, then that data will be used.  Otherwise the velocity variance will show as No Data.  " +
             "<h1>How it is calculated</h1>" +
-            "The velocities used in this calculation is the current velocity, which is calculated by adding all stories associated with " +
-            " the iteration as of the current date",
+            "The velocity used in this calculation is the current velocity, which is calculated by adding all stories associated with " +
+            "the iteration as of the current date"
+        },
+        __cycleTime: {
+            display: true,
+            displayName: 'Avg Cycle Time',
+            range: { green: 0, yellow: 4, red: 6, direction: 'green,yellow,red'},
+            tooltip: "<h1>Description</h1>" +
+            "Cycle Time in this report is the average number of days betweens starting and finishing a story in the sprint." +
+            "<h1>How it is calculated</h1>" +
+            "The displayed result is the number of days between the In Progress Date and the Accepted Date."
         }
     },
 
@@ -418,8 +427,6 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
              return Ext.String.format('<div style="display:inline;width:35px;text-align:right;float:right;background-color:{0};">{1}</div>{2}' ,color, text, icon_string);
         },
         __velocityVariance: function(value, metaData, record){
-            this.logger.log('__velocityVariance', value, record);
-
             if ( value === null ) {
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
                 return "N/A";
@@ -433,6 +440,22 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             metaData.style = "padding-right:7px;text-align:right;background-color: " + color;
 
             return text;
+        },
+        __cycleTime: function(value, metaData, record) {
+            // NOTE: cycle time is stored in hours
+            if ( value === null || value == -2) {
+                metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
+                return "N/A";
+            }
+            var days = Ext.util.Format.number( value / 8, "0.##" );
+            
+            var ranges = this.displaySettings.__cycleTime.range;
+
+            var color = this.renderers.getRangeColor(Math.abs(days), record, ranges, this, true);
+
+            metaData.style = "padding-right:7px;text-align:right;background-color: " + color;
+
+            return days;
         }
 
     },
@@ -493,6 +516,13 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         } else {
             this.displaySettings.__velocityVariance.display = false;
         }
+        
+        if (settings.showIterationCycleTime === true || settings.showIterationCycleTime === "true"){
+            this.displaySettings.__cycleTime.display = true;
+        } else {
+            this.displaySettings.__cycleTime.display = false;
+        }
+        
     }
 });
 
