@@ -253,12 +253,16 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         
         longDate: function(value, m) {
-            console.log('wks', Rally.getApp().getContext().getWorkspace());
-            
             if (value && new Date(value) !== 'Invalid Date'){
-                value = new Date(value);
                 m.style = "text-align:center;";
-                return Ext.Date.format(value, 'Y-m-d g:i A T');
+                
+                value = moment(value);
+                var wks = Rally.getApp().getContext().getWorkspace();
+                var timezone = wks.WorkspaceConfiguration.TimeZone;
+                
+                return value.tz(timezone).format('YYYY-MMM-DD h:mm a z');
+//                value = new Date(value);
+//                return Rally.util.DateTime.formatWithDefaultDateTime(value, Rally.getApp().getContext());
             }
             return "";
         },

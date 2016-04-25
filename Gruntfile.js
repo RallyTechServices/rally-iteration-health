@@ -13,7 +13,7 @@ module.exports = function(grunt) {
     
         config = grunt.file.readJSON('config.json');
 
-        config.js_files = grunt.file.expand(['../common/src/javascript/*.js','src/javascript/utils/*.js','src/javascript/*.js']);
+        config.js_files = grunt.file.expand(['src/external-lib/javascript/*.js','src/javascript/utils/*.js','src/javascript/*.js']);
 
         config.ugly_files = grunt.file.expand(['deploy/app.min.*.js']);
         
