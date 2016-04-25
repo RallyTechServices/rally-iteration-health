@@ -80,6 +80,13 @@ This shows the average cycle time of stories in the sprint. This can be configur
   * **In Progress to Completed** : (Only available/selectable in SAAS) Calculated using lookback to count the hours from first transition to
       In-Progress (or higher) to the last transition to Completed (or higher).  Does NOT consider if moves left of In-Progress after first hit.
 
+
+###Show Local Date
+Check this box to show sprint beginning and end date in the browser's local time.  Otherwise show it in the workspace's default.  
+When the workspace is in a timezone to the west of the user's timezone, local time can be a day later than would be shown in workspace
+timezone.
+
+
 ## Building this code
 
 ### First Load

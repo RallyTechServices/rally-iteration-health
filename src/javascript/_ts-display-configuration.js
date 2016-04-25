@@ -11,6 +11,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     showDateForHalfAcceptanceRatio: false,
     skipZeroForEstimationRatio: false,
     context: undefined,
+    useLocalTime: true,
 
     /**
      * Colors for Cell Renderers
@@ -223,8 +224,15 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
     },
     getRenderer: function(field,v,m,r,r_idx, c_idx){
+        console.log('--', this.useLocalTime, Rally.getApp().getSetting('useLocalTime'));
+        var useLocalTime = Rally.getApp().getSetting('useLocalTime');
+        
         if (field == 'StartDate' || field == 'EndDate'){
-            field = 'shortDate';
+            if ( useLocalTime ) {
+                field = 'shortDate';
+            } else {
+                field = 'longDate';
+            }
         }
 
         if (this.renderers[field]){
@@ -243,6 +251,18 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             m.style = "padding-right:7px;text-align:right;";
             return v;
         },
+        
+        longDate: function(value, m) {
+            console.log('wks', Rally.getApp().getContext().getWorkspace());
+            
+            if (value && new Date(value) !== 'Invalid Date'){
+                value = new Date(value);
+                m.style = "text-align:center;";
+                return Ext.Date.format(value, 'Y-m-d g:i A T');
+            }
+            return "";
+        },
+        
         shortDate: function(value, m) {
 
              if (value && new Date(value) !== 'Invalid Date'){
@@ -252,6 +272,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
             return "";
         },
+        
         __ratioEstimated: function(value,metaData,record){
             if (!this.usePoints){
                 return "N/A";

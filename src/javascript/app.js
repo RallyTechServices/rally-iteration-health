@@ -11,7 +11,8 @@ Ext.define("rally-iteration-health", {
             showVelocityVariation: false,
             previousIterations: 3,
             allowGroupByLeafTeam: false,
-            showIterationCycleTime: false
+            showIterationCycleTime: false,
+            useLocalTime: true
         }
     },
     defaultNumIterations: 20,
@@ -647,6 +648,16 @@ Ext.define("rally-iteration-health", {
             margin: check_box_margins,
             boxLabel: 'Allow Group by Leaf Team'
         });
+        
+        settings.push({
+            name: 'useLocalTime',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: check_box_margins,
+            boxLabel: 'Show Local Date'
+        });
+        
         return settings;
     },
     //showSettings:  Override

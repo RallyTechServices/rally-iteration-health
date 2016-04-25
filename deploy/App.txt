@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Mon Apr 18 2016 22:25:54 GMT-0700 (PDT) -->
+    <!--  Build Date: Mon Apr 25 2016 14:29:44 GMT-0700 (MST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Apr 18 2016 22:25:54 GMT-0700 (PDT)";
-        var CHECKSUM = 176357151574;
+        var APP_BUILD_DATE = "Mon Apr 25 2016 14:29:44 GMT-0700 (MST)";
+        var CHECKSUM = 179808873049;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -189,6 +189,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     showDateForHalfAcceptanceRatio: false,
     skipZeroForEstimationRatio: false,
     context: undefined,
+    useLocalTime: true,
 
     /**
      * Colors for Cell Renderers
@@ -401,8 +402,15 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
     },
     getRenderer: function(field,v,m,r,r_idx, c_idx){
+        console.log('--', this.useLocalTime, Rally.getApp().getSetting('useLocalTime'));
+        var useLocalTime = Rally.getApp().getSetting('useLocalTime');
+        
         if (field == 'StartDate' || field == 'EndDate'){
-            field = 'shortDate';
+            if ( useLocalTime ) {
+                field = 'shortDate';
+            } else {
+                field = 'longDate';
+            }
         }
 
         if (this.renderers[field]){
@@ -421,6 +429,18 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             m.style = "padding-right:7px;text-align:right;";
             return v;
         },
+        
+        longDate: function(value, m) {
+            console.log('wks', Rally.getApp().getContext().getWorkspace());
+            
+            if (value && new Date(value) !== 'Invalid Date'){
+                value = new Date(value);
+                m.style = "text-align:center;";
+                return Ext.Date.format(value, 'Y-m-d g:i A T');
+            }
+            return "";
+        },
+        
         shortDate: function(value, m) {
 
              if (value && new Date(value) !== 'Invalid Date'){
@@ -430,6 +450,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
             return "";
         },
+        
         __ratioEstimated: function(value,metaData,record){
             if (!this.usePoints){
                 return "N/A";
@@ -1371,7 +1392,8 @@ Ext.define("rally-iteration-health", {
             showVelocityVariation: false,
             previousIterations: 3,
             allowGroupByLeafTeam: false,
-            showIterationCycleTime: false
+            showIterationCycleTime: false,
+            useLocalTime: true
         }
     },
     defaultNumIterations: 20,
@@ -2007,6 +2029,16 @@ Ext.define("rally-iteration-health", {
             margin: check_box_margins,
             boxLabel: 'Allow Group by Leaf Team'
         });
+        
+        settings.push({
+            name: 'useLocalTime',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: check_box_margins,
+            boxLabel: 'Show Local Date'
+        });
+        
         return settings;
     },
     //showSettings:  Override
