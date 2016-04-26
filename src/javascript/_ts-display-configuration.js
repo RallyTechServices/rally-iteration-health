@@ -11,6 +11,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     showDateForHalfAcceptanceRatio: false,
     skipZeroForEstimationRatio: false,
     context: undefined,
+    useLocalTime: true,
 
     /**
      * Colors for Cell Renderers
@@ -223,8 +224,15 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
     },
     getRenderer: function(field,v,m,r,r_idx, c_idx){
+        console.log('--', this.useLocalTime, Rally.getApp().getSetting('useLocalTime'));
+        var useLocalTime = Rally.getApp().getSetting('useLocalTime');
+        
         if (field == 'StartDate' || field == 'EndDate'){
-            field = 'shortDate';
+            if ( useLocalTime ) {
+                field = 'shortDate';
+            } else {
+                field = 'longDate';
+            }
         }
 
         if (this.renderers[field]){
@@ -243,6 +251,22 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             m.style = "padding-right:7px;text-align:right;";
             return v;
         },
+        
+        longDate: function(value, m) {
+            if (value && new Date(value) !== 'Invalid Date'){
+                m.style = "text-align:center;";
+                
+                value = moment(value);
+                var wks = Rally.getApp().getContext().getWorkspace();
+                var timezone = wks.WorkspaceConfiguration.TimeZone;
+                
+                return value.tz(timezone).format('YYYY-MMM-DD h:mm a z');
+//                value = new Date(value);
+//                return Rally.util.DateTime.formatWithDefaultDateTime(value, Rally.getApp().getContext());
+            }
+            return "";
+        },
+        
         shortDate: function(value, m) {
 
              if (value && new Date(value) !== 'Invalid Date'){
@@ -252,6 +276,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
             return "";
         },
+        
         __ratioEstimated: function(value,metaData,record){
             if (!this.usePoints){
                 return "N/A";
