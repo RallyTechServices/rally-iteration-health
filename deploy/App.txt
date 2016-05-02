@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Mon May 02 2016 10:42:24 GMT-0700 (PDT) -->
+    <!--  Build Date: Mon May 02 2016 11:08:13 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon May 02 2016 10:42:24 GMT-0700 (PDT)";
-        var CHECKSUM = 181333724786;
+        var APP_BUILD_DATE = "Mon May 02 2016 11:08:13 GMT-0700 (PDT)";
+        var CHECKSUM = 181773579969;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -795,7 +795,7 @@ Ext.define('Rally.technicalservices.util.Health',{
         if (stdev >= 0 && Ext.Array.mean(totals) != 0){
             dev_ratio = Ext.util.Format.number(stdev/Ext.Array.mean(totals),"0.00");
         }
-        direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
+        var direction = Rally.technicalservices.util.Health.getChurnDirection(totals);
 
         var churn = dev_ratio * direction;
         if (!isNaN(churn)){
@@ -973,19 +973,20 @@ Ext.define('Rally.technicalservices.util.Health',{
         return ratio;
     },
     daysBetween: function(begin_date_js,end_date_js,skip_weekends){
-        var dDate1 = Ext.clone(begin_date_js).setHours(0,0,0,0);
-        var dDate2 = Ext.clone(end_date_js).setHours(0,0,0,0);
-
+        var dDate1 = Ext.clone(begin_date_js);
+        var dDate2 = Ext.clone(end_date_js);
+        
         if ( dDate1 == dDate2 ) { return 0; }
         if (typeof dDate1 === "number") { dDate1 = new Date(dDate1); }
         if (typeof dDate2 === "number") { dDate2 = new Date(dDate2); }
+
+        //console.log('difference ', dDate1, dDate2);
 
         if ( !skip_weekends ) {
             return Math.abs( Rally.util.DateTime.getDifference(dDate1,dDate2,'day') );
         } else {
             // BRUTE FORCE
-            if (dDate2 < dDate1)
-            {
+            if (dDate2 < dDate1){
                 var x = dDate2;
                 dDate2 = dDate1;
                 dDate1 = x;
@@ -995,12 +996,15 @@ Ext.define('Rally.technicalservices.util.Health',{
             while ( date_chit < dDate2 ) {
 
                 var day_of_week = date_chit.getDay();
+                //console.log('  ', day_of_week, date_chit);
                 if ( day_of_week != 0 && day_of_week != 6 ) {
                     counter++;
                 }
                 var next_day = Rally.util.DateTime.add(date_chit,"day",1);
                 date_chit = next_day;
             }
+            
+            //console.log('--', counter);
             return counter;
         }
     }
@@ -1023,7 +1027,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     name: '__days',
                     convert: function(value, record){
                         if (record.get('EndDate') && record.get('StartDate')){
-                            return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true) + 1;
+                            return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true);
                         } else {
                             return '--';
                         }

@@ -15,7 +15,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     name: '__days',
                     convert: function(value, record){
                         if (record.get('EndDate') && record.get('StartDate')){
-                            return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true) + 1;
+                            return Rally.technicalservices.util.Health.daysBetween(record.get('EndDate'),record.get('StartDate'),true);
                         } else {
                             return '--';
                         }
