@@ -620,7 +620,7 @@ Ext.define("rally-iteration-health", {
         ];
 
         /* requires lookback */
-        if ( this._isNotOnPrem() ) {
+        if ( this._isNotOnPrem() && this._isNotSandbox() ) {
             cycle_time_choices.push({Name:'In Progress to Completed', Value:'inprogress-to-completed'});
         }
         
@@ -688,6 +688,10 @@ Ext.define("rally-iteration-health", {
         return ( this.getContext().getGlobalContext().context 
             && this.getContext().getGlobalContext().context.stack 
             && ! this.getContext().getGlobalContext().context.stack.isOnPrem );
+    },
+    
+    _isNotSandbox: function() {
+        return ! /https:\/\/sandbox/.test(window.location.href );
     },
     
     _onSettingsSaved: function(settings){
