@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Mon Apr 25 2016 15:00:56 GMT-0700 (MST) -->
+    <!--  Build Date: Mon May 02 2016 10:42:24 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Apr 25 2016 15:00:56 GMT-0700 (MST)";
-        var CHECKSUM = 180738395734;
+        var APP_BUILD_DATE = "Mon May 02 2016 10:42:24 GMT-0700 (PDT)";
+        var CHECKSUM = 181333724786;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -2005,7 +2005,7 @@ Ext.define("rally-iteration-health", {
         ];
 
         /* requires lookback */
-        if ( this._isNotOnPrem() ) {
+        if ( this._isNotOnPrem() && this._isNotSandbox() ) {
             cycle_time_choices.push({Name:'In Progress to Completed', Value:'inprogress-to-completed'});
         }
         
@@ -2073,6 +2073,10 @@ Ext.define("rally-iteration-health", {
         return ( this.getContext().getGlobalContext().context 
             && this.getContext().getGlobalContext().context.stack 
             && ! this.getContext().getGlobalContext().context.stack.isOnPrem );
+    },
+    
+    _isNotSandbox: function() {
+        return ! /https:\/\/sandbox/.test(window.location.href );
     },
     
     _onSettingsSaved: function(settings){
