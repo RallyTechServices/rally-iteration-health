@@ -439,7 +439,6 @@ Ext.define("rally-iteration-health", {
 
         this._showStatus("Loading Iteration Say/Do Data")
 
-        
         var promises = [];
         Ext.Array.each(iterationRecords, function(iteration){
             var start = new Date(iteration.get("StartDate").setHours(23,59,59));
@@ -509,7 +508,7 @@ Ext.define("rally-iteration-health", {
                     
                     if ( Ext.isEmpty(start_item) ) { 
                         console.log("Not in the start: ", fid);
-                    } else if ( Ext.isEmpty(start_item.get('AcceptedDate')) ) {
+                    } else if ( Ext.isEmpty(item.get('AcceptedDate')) ) {
                         console.log("Not Accepted: ", fid);
                     } else {
                         start_item.set('__end_plan_estimate', pe);

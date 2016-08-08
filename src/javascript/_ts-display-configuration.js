@@ -357,6 +357,8 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         },
         __sayDoRatioData: function(value,metaData,record) {
             var ranges = this.displaySettings.__sayDoRatioData.range;
+            console.log('ranges:', ranges);
+            
             var color = this.green;
 
             var field = 'count_ratio';
@@ -365,7 +367,6 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             }
             
             value = record.get('__sayDoRatioData') && record.get('__sayDoRatioData')[field];
-            console.log('<<', record.get("ObjectID"), value, record);
             
             if ( Ext.isEmpty(value) ) {
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
