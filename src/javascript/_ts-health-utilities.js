@@ -178,7 +178,7 @@ Ext.define('Rally.technicalservices.util.Health',{
             last_date = dates.pop(),
             last_total = Rally.technicalservices.util.Health.getDayTotal(health_hash,last_date),
             last_accepted = done_hash[last_date],
-            last_completed =  health_hash[last_date][completed_state] || 0;
+            last_completed =  health_hash[last_date] && health_hash[last_date][completed_state] || 0;
 
             var ratio = 2;
             if ( last_total > 0 ) {

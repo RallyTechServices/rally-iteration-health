@@ -57,6 +57,9 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                 },{
                     name: '__cycleTime',
                     defaultValue: -2
+                },{
+                    name: '__sayDoRatioData',
+                    type: 'object'
                 }];
 
                 var new_model = Ext.define(newModelName, {
@@ -64,8 +67,6 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     logger: new Rally.technicalservices.Logger(),
                     fields: default_fields,
                     calculate: function(usePoints, skipZeroForEstimation, previousIterationCount, doneStates) {
-                        this.logger.log('calculate', this.get('Name'));
-
                         this.resetDefaults();
 
                         var iteration_oid = this.get('ObjectID');
@@ -125,7 +126,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         var daily_totals = {},
                             daily_task_estimate_totals = {},
                             counter = 0;
-                        this.logger.log('_processCFD', records.length, usePoints, doneStates,records);
+
                         Ext.Array.each(records, function(cf) {
                             var card_date = cf.CreationDate; //cf.get('CreationDate');
 
@@ -213,7 +214,7 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                     },
                     _setArtifacts: function(records, doneStates, thisIterationObjectID){
                        var count_of_estimated_artifacts = 0;
-                        this.logger.log('_setArtifacts', records);
+
                         var velocity = {},
                             this_velocity = 0,
                             this_count = 0,
@@ -230,13 +231,11 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                                     this_velocity += plan_estimate;
                                 }
                             } else {
-                                this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.FormattedID);
+                                //this.logger.log('artifact not included plan_estimate -->', plan_estimate, artifact.FormattedID);
                             }
                             
                             var cycleTime = artifact_iteration.__cycleTime;
-                            
-                            this.logger.log('++', cycleTime, artifact_iteration);
-                            
+                                                        
                             if ( !Ext.isEmpty(cycleTime) && cycleTime != -2 ) {
                                 cycle_times.push(cycleTime);
                             }
@@ -246,11 +245,10 @@ Ext.define('Rally.technicalservices.ModelBuilder',{
                         
                         this.set('__currentVelocity', this_velocity);  // this uses velocity that is as of now
 
-                        this.logger.log('cycle time array:', cycle_times);
                         if ( cycle_times.length > 0 ) {
                             this.set('__cycleTime', Ext.Array.mean(cycle_times));
                         }
-                        this.logger.log('estimated ratio estimated: ', count_of_estimated_artifacts, ' total: ', this_count);
+
                         if (this_count > 0){
                             this.set('__ratioEstimated',count_of_estimated_artifacts/this_count);
                         }

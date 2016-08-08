@@ -10,6 +10,7 @@ Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
 
     artifactsByIterationHash: undefined,
     cfdByIterationHash: undefined,
+    sayDoByIterationOID: {},
     
     // for getting cycle time other than from in progress to accepted
     lookbackStateChanges: [],
@@ -25,6 +26,7 @@ Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
         
         this._setStateChangesInArtifacts(this.lookbackStateChanges);
         this._setCycleTimes(this.artifactRecords, this.showIterationCycleTime);
+
     },
     
     _setCycleTimes: function(records, showIterationCycleTime) {
@@ -151,6 +153,7 @@ Ext.define('Rally.technicalservices.IterationHealthBulkCalculator', {
     getCFDByIteration: function(iterationOid){
         return this.getCFDByIterationHash()[iterationOid] || null;
     },
+    
     getCFDByIterationHash: function(){
         if (!this.cfdByIterationHash){
             this.cfdByIterationHash = Rally.technicalservices.IterationHealthBulkCalculator._getHashByOid(this.cfdRecords, 'IterationObjectID');

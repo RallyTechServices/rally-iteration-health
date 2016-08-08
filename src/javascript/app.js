@@ -12,7 +12,8 @@ Ext.define("rally-iteration-health", {
             previousIterations: 3,
             allowGroupByLeafTeam: false,
             showIterationCycleTime: false,
-            useLocalTime: true
+            useLocalTime: true,
+            showSayDo: false
         }
     },
     defaultNumIterations: 20,
@@ -53,14 +54,16 @@ Ext.define("rally-iteration-health", {
 
         var project_oid = this.getContext().getProject().ObjectID;
 
-        var promises = [Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]),
-                Rally.technicalservices.WsapiToolbox.fetchDoneStates()];
+        var promises = [
+            Rally.technicalservices.WsapiToolbox.fetchWsapiCount('Project',[{property:'Parent.ObjectID',value: project_oid}]),
+            Rally.technicalservices.WsapiToolbox.fetchDoneStates()
+        ];
 
         Deft.Promise.all(promises).then({
             scope: this,
             success: function(results){
                 this.down('#criteria_box').removeAll();
-                this.logger.log('_initApp child project count:', results[0], 'Schedule States', results[1]);
+
                 this.healthConfig.doneStates = results[1];
                 if (results[0] === 0){
                     this._initForLeafProject(this._fetchIterationsForLeafTeam);
@@ -160,13 +163,9 @@ Ext.define("rally-iteration-health", {
     },
     
     _fetchIterationsForLeafTeam: function(nbf){
-        this.logger.log('_fetchIterationsForLeafTeam',nbf);
         
         var today_iso = Rally.util.DateTime.toIsoString(new Date()),
             num_iterations = nbf ? nbf.getValue() : this.defaultNumIterations;
-
-        this.logger.log('Number of Iterations:', num_iterations);
-        this.logger.log('Today ISO:', today_iso);
         
         this._loadIterations({
             limit: num_iterations,
@@ -190,20 +189,18 @@ Ext.define("rally-iteration-health", {
 
         this.down('#display_box').removeAll();
 
-        this.logger.log('_loadIterations', storeConfig, this);
-
         Rally.technicalservices.ModelBuilder.build('Iteration','IterationHealth').then({
             scope: this,
             success: function(model){
                 storeConfig.model = model;
                 storeConfig.fetch = ['ObjectID','Name','StartDate','EndDate','PlannedVelocity','Project','Children'];
-                this.logger.log('_loadIterations', storeConfig);
+
                 this.iterationHealthStore = Ext.create('Rally.data.wsapi.Store',storeConfig);
 
                 this.iterationHealthStore.load({
                         scope: this,
                         callback: function(records, operation, success){
-                            this.logger.log("After IterationHealthStore load: ", success, operation, records);
+
                             if (success){
                                 this.filterIterations(this.iterationHealthStore);
 
@@ -239,17 +236,24 @@ Ext.define("rally-iteration-health", {
         var iterationOids = _.map(iterationRecords, function(rec){ return rec.get('ObjectID'); }),
             previousIterations = this.getSetting('previousIterations');
 
-        this.logger.log('_loadCalculationData', iterationRecords.length, iterationOids, previousIterations);
         var me = this;
 
-        Deft.Chain.sequence([
+        promises = [
             function() { return me._fetchIterationArtifacts(iterationOids)},
             function() { return me._fetchIterationCFD(iterationOids)},
-            function() { return me._fetchStateChangesFromLookback(iterationOids); }
-        ], me).then({
+            function() { return me._fetchStateChangesFromLookback(iterationOids); },
+            function() { return me._fetchSayDoFromLookback(iterationRecords); }
+        ];
+        
+        Deft.Chain.sequence(promises, me).then({
             success: function(results){
-                this.logger.log('Artifact and CFD fetch results', results);
-
+                this._showStatus(null);
+                
+                var metric_type = this.down('#cb-metric') ? this.down('#cb-metric').getValue() : null,
+                    use_points = (metric_type == 'points');
+                 
+                var say_do_by_iteration_oid = results[3];
+                
                 var calculator = Ext.create('Rally.technicalservices.IterationHealthBulkCalculator',{
                     iterationRecords: iterationRecords,
                     artifactRecords: results[0],
@@ -264,7 +268,9 @@ Ext.define("rally-iteration-health", {
 
                     r.set('__previousIterationVelocities',calculator.getPreviousIterationVelocities(r,previousIterations));
                     r.set('__cfdRecords', calculator.getCFDByIteration(oid));
-                    r.set('__iterationArtifacts', calculator.getArtifactsByIteration(oid))
+                    r.set('__iterationArtifacts', calculator.getArtifactsByIteration(oid));
+
+                    r.set('__sayDoRatioData', say_do_by_iteration_oid[oid] );
                 }, this);
                 this._refreshModels(iterationRecords);
             },
@@ -291,8 +297,6 @@ Ext.define("rally-iteration-health", {
         var config = this.healthConfig,
             column_cfgs = [];
             
-        this.logger.log("_getColumnCfgs", config, config.displaySettings);
-
         _.each(config.displaySettings, function(col, key){
             if (col.display){
                 var cfg = {
@@ -312,7 +316,7 @@ Ext.define("rally-iteration-health", {
                 column_cfgs.push(cfg);
             }
         }, this);
-        this.logger.log('column_cfgs', column_cfgs);
+
         return column_cfgs;
     },
     _showColumnDescription: function(ct, column, evt, target_element, eOpts){
@@ -331,7 +335,7 @@ Ext.define("rally-iteration-health", {
         if (adjustor){
             items.push(adjustor);
         }
-        this.logger.log('_showColumnDesription', column.dataIndex);
+
         this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
             defaults: { padding: 5, margin: 5 },
             closable: true,
@@ -378,7 +382,6 @@ Ext.define("rally-iteration-health", {
 
         this.healthConfig.usePoints = use_points;
 
-        this.logger.log('_updateDisplay', this.iterationHealthStore, metric_type, use_points);
         if (!this.iterationHealthStore || metric_type == null){
             this.logger.log("Store not yet created or metric type not selected");
             return;
@@ -426,6 +429,155 @@ Ext.define("rally-iteration-health", {
         return this._fetchChunkedDataByOid("IterationObjectID", oids, 'Rally.data.wsapi.Store', config);
     },
 
+    _fetchSayDoFromLookback: function(iterationRecords){
+        var me = this,
+            deferred = Ext.create('Deft.Deferred');
+        
+        if ( ! this.getSetting('showSayDo') || iterationRecords.length === 0) {
+            return [];
+        }
+
+        this._showStatus("Loading Iteration Say/Do Data")
+
+        
+        var promises = [];
+        Ext.Array.each(iterationRecords, function(iteration){
+            var start = new Date(iteration.get("StartDate").setHours(23,59,59));
+            var end = iteration.get("EndDate");
+            var oid = iteration.get("ObjectID");
+            
+            promises.push(function() { return me._fetchSayDoForIteration(oid,start,end) });
+        });
+        
+        Deft.Chain.sequence(promises,me).then({
+            success: function(results) {
+                var say_do_by_iteration_oid = {};
+                Ext.Array.each(results, function(result){
+                    Ext.Object.merge(say_do_by_iteration_oid, result);
+                });
+                
+                deferred.resolve(say_do_by_iteration_oid);
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        return deferred.promise;
+    },
+    
+    _fetchSayDoForIteration: function(oid,start,end){
+        var me = this,
+            deferred = Ext.create('Deft.Deferred');
+        
+        var promises = [
+            function() { return me._fetchSayDoForStartOfIteration(oid,start,end); },
+            function() { return me._fetchSayDoForEndOfIteration(oid,start,end); }
+        ];
+        
+        Deft.Chain.sequence(promises,me).then({
+            success: function(results) {
+                var start_items = results[0];
+                var end_items = results[1];
+                
+                var start_items_by_formatted_id = {};
+                var count_start = 0;
+                var size_start  = 0;
+                
+                Ext.Array.each(start_items, function(item) {
+                    var fid = item.get('FormattedID');
+                    var pe  = item.get('PlanEstimate') || 0;
+                    
+                    start_items_by_formatted_id[fid] = item;
+                    count_start = count_start + 1;
+                    size_start  = size_start + pe;
+                });
+                
+                var analysis = {
+                    items: [],
+                    count_start: count_start,
+                    size_start:  size_start,
+                    count_end: 0,
+                    size_end:  0,
+                    count_ratio: -1,
+                    size_ratio:  -1
+                };
+                
+                Ext.Array.each(end_items, function(item){
+                    var fid = item.get('FormattedID');
+                    var pe  = item.get('PlanEstimate') || 0;
+                    var start_item = start_items_by_formatted_id[fid];
+                    
+                    if ( Ext.isEmpty(start_item) ) { 
+                        console.log("Not in the start: ", fid);
+                    } else if ( Ext.isEmpty(start_item.get('AcceptedDate')) ) {
+                        console.log("Not Accepted: ", fid);
+                    } else {
+                        start_item.set('__end_plan_estimate', pe);
+                        analysis.count_end = analysis.count_end + 1;
+                        analysis.size_end  = analysis.size_end + pe;
+                    }
+                });
+                
+                analysis.items = Ext.Array.map(Ext.Object.getValues(start_items_by_formatted_id), function(item) { return item; });
+                
+                
+                if ( analysis.count_start > 0 ) {
+                    analysis.count_ratio = analysis.count_end / analysis.count_start;
+                }
+                if ( analysis.size_start > 0 ) {
+                    analysis.size_ratio = analysis.size_end / analysis.size_start;
+                }
+                
+                var x = {}; 
+                x[oid] = analysis;
+                deferred.resolve(x);
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        
+        return deferred.promise;
+    },
+    
+    _fetchSayDoForStartOfIteration: function(oid,start,end){
+        var me = this;
+        
+        var date_filters = Rally.data.lookback.QueryFilter.or([
+            {property:'__At',value: Rally.util.DateTime.toIsoString(start)}
+        ]);
+        
+        var iteration_filter = Rally.data.lookback.QueryFilter.and([{property:'Iteration',value:oid}]);
+        
+        var config = {
+            fetch: ['FormattedID','Name','AcceptedDate','PlanEstimate'],
+            filters: date_filters.and(iteration_filter)
+        };
+        
+        var lookback_store_class = "Rally.data.lookback.SnapshotStore";
+        
+        return this._fetchData(lookback_store_class, config);
+    },
+    
+    _fetchSayDoForEndOfIteration: function(oid,start,end){
+        var me = this;
+        
+        var date_filters = Rally.data.lookback.QueryFilter.or([
+            {property:'__At',value: Rally.util.DateTime.toIsoString(end)}
+        ]);
+        
+        var iteration_filter = Rally.data.lookback.QueryFilter.and([{property:'Iteration',value:oid}]);
+        
+        var config = {
+            fetch: ['FormattedID','Name','AcceptedDate','PlanEstimate'],
+            filters: date_filters.and(iteration_filter)
+        };
+        
+        var lookback_store_class = "Rally.data.lookback.SnapshotStore";
+        
+        return this._fetchData(lookback_store_class, config);
+    },
+    
     _fetchStateChangesFromLookback: function(iteration_oids) {
         if ( ! this._isNotOnPrem() ) {
             return [];
@@ -469,14 +621,13 @@ Ext.define("rally-iteration-health", {
             me = this;
         _.each(chunks, function(chunk){
             config.filters = Rally.data.wsapi.Filter.or(chunk);
-            this.logger.log('_fetchChunkedDataByOid', config, config.filters.toString());
+
             var newConfig = Ext.clone(config);
             promises.push(function() { return me._fetchData(storeType, newConfig); });
         }, this);
 
         Deft.Chain.parallel(promises, this).then({
             success: function(results){
-                this.logger.log('_fetchChunkedDataByOid CALLBACK', results);
                 this._showStatus(null);
                 deferred.resolve(_.flatten(results));
             },
@@ -491,10 +642,9 @@ Ext.define("rally-iteration-health", {
     _fetchData: function(storeType, config){
         var deferred = Ext.create('Deft.Deferred');
 
-        this.logger.log('_fetchData', storeType, config);
         Ext.create(storeType,config).load({
             callback: function(records, operation){
-                this.logger.log('_fetchData CALLBACK', storeType, config, records, operation);
+
                 if (operation.wasSuccessful()){
                     deferred.resolve(records);
                 } else {
@@ -565,7 +715,6 @@ Ext.define("rally-iteration-health", {
     },
     //onSettingsUpdate:  Override
     onSettingsUpdate: function (settings){
-        this.logger.log('onSettingsUpdate',settings);
         Ext.apply(this, settings);
         this.launch();
     },
@@ -613,6 +762,17 @@ Ext.define("rally-iteration-health", {
             margin: check_box_margins,
             boxLabel: 'Show ' + velocity_variance_name
         });
+        /* requires lookback */
+        if ( this._isNotOnPrem() && this._isNotSandbox() ) {
+            settings.push({
+                name: 'showSayDo',
+                xtype: 'rallycheckboxfield',
+                boxLabelAlign: 'after',
+                fieldLabel: '',
+                margin: check_box_margins,
+                boxLabel: 'Show Say:Do Ratio'
+            });
+        }
         
         var cycle_time_choices = [
             {Name:'No', Value:false},
