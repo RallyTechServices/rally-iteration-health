@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Sun Aug 07 2016 20:41:32 GMT-0700 (PDT) -->
+    <!--  Build Date: Mon Aug 08 2016 20:17:19 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Aug 07 2016 20:41:32 GMT-0700 (PDT)";
-        var CHECKSUM = 204628307551;
+        var APP_BUILD_DATE = "Mon Aug 08 2016 20:17:19 GMT-0700 (PDT)";
+        var CHECKSUM = 204628306832;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
