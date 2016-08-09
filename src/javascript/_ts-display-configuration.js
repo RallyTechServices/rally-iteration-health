@@ -12,6 +12,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
     skipZeroForEstimationRatio: false,
     context: undefined,
     useLocalTime: true,
+    showSayDo: false,
 
     /**
      * Colors for Cell Renderers
@@ -190,6 +191,21 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "Cycle Time in this report is the average number of days betweens starting and finishing a story in the sprint." +
             "<h1>How it is calculated</h1>" +
             "The displayed result is the number of days between the In Progress Date and the Accepted Date."
+        },
+        __sayDoRatioData: {
+            display: false,
+            displayName: 'Say Do Ratio',
+            range: { green: 0, yellow: 0, red: 0, direction: 'red,yellow,green'},
+            tooltip: "<h1>Description</h1>" +
+            "Say Do Ratio is calculated from the items associated on the first day of the sprint compared to the status " +
+            "of the same items on the last day of the sprint." +
+            "<h1>How it is calculated</h1>" +
+            "If a story or defect is assigned to the sprint on the first day of the sprint, then its size or count is " +
+            "added to the starting total.  If a story or defect from that group only is still in the sprint at the last day " + 
+            "AND has been accepted, then the points/count is added to the ending total.  The Say/Do Ratio is the division of " +
+            "end value by start value.  Items can be counted in the start but not the end by not being (at least) accepted or " +
+            "by not being in the sprint any more on the last day.  Items not counted at all are ones that are in the sprint on " + 
+            "the last day but were not added to the sprint until after the first day."
         }
     },
 
@@ -207,13 +223,11 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             Rally.technicalservices.WsapiToolbox.fetchPreferences(this.appId).then({
                 scope: this,
                 success: function(prefs){
-                    this.logger.log("preferences",prefs);
                     if ( prefs && prefs['rally-tech-services-ranges'] ) {
                         var savedRanges = Ext.JSON.decode(prefs['rally-tech-services-ranges']);
                         _.each(savedRanges,function(value, key){
                             this.displaySettings[key].range = value;
                         }, this);
-                        this.logger.log("savedRanges", savedRanges);
                     }
                     this.fireEvent('ready');
                 }
@@ -224,7 +238,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
 
     },
     getRenderer: function(field,v,m,r,r_idx, c_idx){
-        console.log('--', this.useLocalTime, Rally.getApp().getSetting('useLocalTime'));
+
         var useLocalTime = Rally.getApp().getSetting('useLocalTime');
         
         if (field == 'StartDate' || field == 'EndDate'){
@@ -319,7 +333,6 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __halfAcceptedRatio: function(value,metaData,record) {
             var ranges = this.displaySettings.__halfAcceptedRatio.range;
             var color = this.green;
-            this.logger.log('__halfAcceptedRatio',this.showDateForHalfAcceptanceRatio, value, record,record.get('Name'),record.get('__halfAcceptedDate'));
 
             if ( value < 0 ) {
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
@@ -338,6 +351,37 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
                     text = Ext.String.format('{0}%',percent);
                 }
             }
+            color = this.renderers.getRangeColor(percent,record, ranges, this, true);
+            metaData.style = "padding-right:7px;text-align:right;background-color: " + color;
+            return text;
+        },
+        __sayDoRatioData: function(value,metaData,record) {
+            var ranges = this.displaySettings.__sayDoRatioData.range;
+            console.log('ranges:', ranges);
+            
+            var color = this.green;
+
+            var field = 'count_ratio';
+            if ( this.usePoints ) {
+                field = 'size_ratio';
+            }
+            
+            value = record.get('__sayDoRatioData') && record.get('__sayDoRatioData')[field];
+            
+            if ( Ext.isEmpty(value) ) {
+                metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
+                return "--";
+            }
+            if ( value < 0 ) {
+                metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
+                return "N/A";
+            }
+            var percent = parseInt( 100 * value, 10),
+                text = "Never";
+
+            
+            text = Ext.String.format('{0}%',percent);
+                
             color = this.renderers.getRangeColor(percent,record, ranges, this, true);
             metaData.style = "padding-right:7px;text-align:right;background-color: " + color;
             return text;
@@ -365,7 +409,6 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return (check_percent < config.benchmarkGreen && config.usePoints);
         },
         __endCompletionRatio: function(value,metaData,record) {
-            this.logger.log('__endCompletionRatio',value);
             if ( value < 0 ) {
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
                 return "No Data";
@@ -381,7 +424,6 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return text;
         },
         __endAcceptanceRatio: function(value,metaData,record) {
-            this.logger.log('__endAcceptanceRatio',value);
 
             if ( value < 0 ) {
                 metaData.style = "padding-right:7px;text-align:right;background-color: " + this.grey;
@@ -401,7 +443,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         __scopeChurn: function(value,metaData,record) {
 
             var color = this.renderers.shouldBeGrey(this,record) ? this.grey : "white";
-            this.logger.log('__scopeChurn',value, record);
+
             var direction = 1,
                 icon_string = "";
             if (value != 0){
@@ -425,7 +467,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             return Ext.String.format('<div style="display:inline;width:35px;text-align:right;float:right;background-color:{0};">{1}</div>{2}',color,text,icon_string);
         },
         __taskChurn: function(value,metaData,record) {
-            this.logger.log('__taskChurn', value);
+
             var text = "No Data",
                 direction = 0,
                 icon_string = "";
@@ -492,7 +534,6 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
         return Ext.String.format('Range ({0})', colors.join('/'));
     },
     setRanges: function(name, range){
-        this.logger.log('setRanges', name, range);
 
         this.displaySettings[name].range = range;
 
@@ -541,6 +582,8 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             this.displaySettings.__velocityVariance.display = false;
         }
         
+        this.showSayDo = settings.showSayDo || false;
+        this.displaySettings.__sayDoRatioData.display = this.showSayDo;
         
         if (settings.showIterationCycleTime != false && settings.showIterationCycleTime != "false" ){
             this.displaySettings.__cycleTime.display = true;
