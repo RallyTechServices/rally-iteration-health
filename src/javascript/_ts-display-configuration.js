@@ -202,7 +202,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "<h1>How it is calculated</h1>" +
             "If a story or defect is assigned to the sprint on the first day of the sprint, then its size or count is " +
             "added to the starting total.  If a story or defect from that group only is still in the sprint at the last day " + 
-            "AND has been accepted, then the points/count is added to the ending total.  The Say/Do Ratio is the division of " +
+            "AND has been accepted, then the points/count <em>from the start</em> is added to the ending total.  The Say/Do Ratio is the division of " +
             "end value by start value.  Items can be counted in the start but not the end by not being (at least) accepted or " +
             "by not being in the sprint any more on the last day.  Items not counted at all are ones that are in the sprint on " + 
             "the last day but were not added to the sprint until after the first day."

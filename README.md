@@ -86,6 +86,13 @@ Check this box to show sprint beginning and end date in the browser's local time
 When the workspace is in a timezone to the west of the user's timezone, local time can be a day later than would be shown in workspace
 timezone.
 
+###Show Say:Do Ratio
+This box should only be available when lookback is available.  Check this box to calculate the say/do ratio: The app will 
+review the list of items assigned to the iteration on the first day and the items assigned on the last day.  Those items that
+were there on the first day and are still in the iteration & have been accepted will be divided by the items that were on the 
+first day to determine a percentage.  The percentage will always be 100% or less because count and plan estimate are used as 
+set from the beginning of the sprint.
+
 
 ## Building this code
 
