@@ -238,7 +238,7 @@ Ext.define("rally-iteration-health", {
 
         var me = this;
 
-        promises = [
+        var promises = [
             function() { return me._fetchIterationArtifacts(iterationOids)},
             function() { return me._fetchIterationCFD(iterationOids)},
             function() { return me._fetchStateChangesFromLookback(iterationOids); },
@@ -503,7 +503,6 @@ Ext.define("rally-iteration-health", {
                 
                 Ext.Array.each(end_items, function(item){
                     var fid = item.get('FormattedID');
-                    var pe  = item.get('PlanEstimate') || 0;
                     var start_item = start_items_by_formatted_id[fid];
                     
                     if ( Ext.isEmpty(start_item) ) { 
@@ -512,6 +511,8 @@ Ext.define("rally-iteration-health", {
                         console.log("Not Accepted: ", fid);
                     } else {
                         start_item.set('__end_plan_estimate', pe);
+                        var pe  = start_item.get('PlanEstimate') || 0;
+                        
                         analysis.count_end = analysis.count_end + 1;
                         analysis.size_end  = analysis.size_end + pe;
                     }

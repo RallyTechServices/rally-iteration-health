@@ -3,11 +3,11 @@
 <head>
     <title>Rally Iteration Health</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Mon Aug 08 2016 20:17:19 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue Aug 09 2016 17:35:42 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Aug 08 2016 20:17:19 GMT-0700 (PDT)";
-        var CHECKSUM = 204628306832;
+        var APP_BUILD_DATE = "Tue Aug 09 2016 17:35:42 GMT-0700 (PDT)";
+        var CHECKSUM = 204821544481;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -380,7 +380,7 @@ Ext.define('Rally.technicalservices.healthConfiguration',{
             "<h1>How it is calculated</h1>" +
             "If a story or defect is assigned to the sprint on the first day of the sprint, then its size or count is " +
             "added to the starting total.  If a story or defect from that group only is still in the sprint at the last day " + 
-            "AND has been accepted, then the points/count is added to the ending total.  The Say/Do Ratio is the division of " +
+            "AND has been accepted, then the points/count <em>from the start</em> is added to the ending total.  The Say/Do Ratio is the division of " +
             "end value by start value.  Items can be counted in the start but not the end by not being (at least) accepted or " +
             "by not being in the sprint any more on the last day.  Items not counted at all are ones that are in the sprint on " + 
             "the last day but were not added to the sprint until after the first day."
@@ -1668,7 +1668,7 @@ Ext.define("rally-iteration-health", {
 
         var me = this;
 
-        promises = [
+        var promises = [
             function() { return me._fetchIterationArtifacts(iterationOids)},
             function() { return me._fetchIterationCFD(iterationOids)},
             function() { return me._fetchStateChangesFromLookback(iterationOids); },
@@ -1933,7 +1933,6 @@ Ext.define("rally-iteration-health", {
                 
                 Ext.Array.each(end_items, function(item){
                     var fid = item.get('FormattedID');
-                    var pe  = item.get('PlanEstimate') || 0;
                     var start_item = start_items_by_formatted_id[fid];
                     
                     if ( Ext.isEmpty(start_item) ) { 
@@ -1942,6 +1941,8 @@ Ext.define("rally-iteration-health", {
                         console.log("Not Accepted: ", fid);
                     } else {
                         start_item.set('__end_plan_estimate', pe);
+                        var pe  = start_item.get('PlanEstimate') || 0;
+                        
                         analysis.count_end = analysis.count_end + 1;
                         analysis.size_end  = analysis.size_end + pe;
                     }
